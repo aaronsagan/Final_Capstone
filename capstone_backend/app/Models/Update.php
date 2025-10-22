@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Update extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'charity_id',
@@ -19,6 +20,7 @@ class Update extends Model
         'is_pinned',
         'likes_count',
         'comments_count',
+        'shares_count',
     ];
 
     protected $casts = [
@@ -26,9 +28,14 @@ class Update extends Model
         'is_pinned' => 'boolean',
         'likes_count' => 'integer',
         'comments_count' => 'integer',
+        'shares_count' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
+    
+    // Append computed attributes to JSON
+    protected $appends = ['is_liked'];
 
     protected $with = ['charity'];
 
@@ -76,11 +83,45 @@ class Update extends Model
     }
 
     /**
+     * Get all shares for this update
+     */
+    public function shares(): HasMany
+    {
+        return $this->hasMany(UpdateShare::class);
+    }
+
+    /**
      * Check if user has liked this update
      */
     public function isLikedBy($userId): bool
     {
-        return $this->likes()->where('user_id', $userId)->exists();
+        // Use direct DB query instead of relationship
+        $result = \DB::table('update_likes')
+            ->where('update_id', $this->id)
+            ->where('user_id', $userId)
+            ->exists();
+        
+        $count = \DB::table('update_likes')
+            ->where('update_id', $this->id)
+            ->where('user_id', $userId)
+            ->count();
+            
+        \Log::info("isLikedBy(update={$this->id}, user={$userId}): result=" . ($result ? 'TRUE' : 'FALSE') . ", count={$count}");
+        
+        return $result;
+    }
+    
+    /**
+     * Accessor for is_liked attribute
+     * Returns true if the authenticated user has liked this update
+     */
+    public function getIsLikedAttribute(): bool
+    {
+        $userId = auth()->id();
+        if (!$userId) {
+            return false;
+        }
+        return $this->isLikedBy($userId);
     }
 
     /**

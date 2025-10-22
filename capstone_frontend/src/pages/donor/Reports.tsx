@@ -57,7 +57,7 @@ export default function DonorReports() {
 
   const fetchCharities = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/charities`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/charities`);
       if (!res.ok) return;
       const payload = await res.json();
       // Backend returns shape: { charities: { data: [...] }, filters: {...}, total: n }

@@ -76,7 +76,7 @@ class DonorService {
    */
   async getDashboardStats(): Promise<DonorStats> {
     // Fetch donations and calculate stats from them
-    const res = await this.api.get('/api/me/donations');
+    const res = await this.api.get('/me/donations');
     const donations = res.data.data || res.data;
     
     // Calculate stats from donations
@@ -109,7 +109,7 @@ class DonorService {
   async getSupportedCharitiesUpdates(limit: number = 4): Promise<CharityUpdate[]> {
     try {
       // Get all charities and fetch their updates
-      const charitiesRes = await this.api.get('/api/charities');
+      const charitiesRes = await this.api.get('/charities');
       const charities = charitiesRes.data.charities?.data || charitiesRes.data.data || charitiesRes.data;
       
       if (!charities || charities.length === 0) {
@@ -121,7 +121,7 @@ class DonorService {
       // Fetch updates from first few charities
       for (const charity of charities.slice(0, 3)) {
         try {
-          const updatesRes = await this.api.get(`/api/charities/${charity.id}/updates`, {
+          const updatesRes = await this.api.get(`/charities/${charity.id}/updates`, {
             validateStatus: (status) => {
               // Accept any status code to prevent axios from throwing errors
               return status >= 200 && status < 600;
@@ -167,7 +167,7 @@ class DonorService {
   async getSuggestedCampaigns(limit: number = 3): Promise<SuggestedCampaign[]> {
     try {
       // First, get all charities
-      const charitiesRes = await this.api.get('/api/charities');
+      const charitiesRes = await this.api.get('/charities');
       const charities = charitiesRes.data.charities?.data || charitiesRes.data.data || charitiesRes.data;
       
       if (!charities || charities.length === 0) {
@@ -179,7 +179,7 @@ class DonorService {
       
       for (const charity of charities.slice(0, 5)) { // Limit to first 5 charities to avoid too many requests
         try {
-          const campaignsRes = await this.api.get(`/api/charities/${charity.id}/campaigns`, {
+          const campaignsRes = await this.api.get(`/charities/${charity.id}/campaigns`, {
             validateStatus: (status) => {
               // Accept any status code to prevent axios from throwing errors
               return status >= 200 && status < 600;
@@ -227,7 +227,7 @@ class DonorService {
    * Get all charities (for browsing)
    */
   async getAllCharities(page: number = 1) {
-    const res = await this.api.get('/api/charities', {
+    const res = await this.api.get('/charities', {
       params: { page }
     });
     return res.data;
@@ -237,7 +237,7 @@ class DonorService {
    * Get all campaigns (for discovery)
    */
   async getAllCampaigns(page: number = 1, filters?: any) {
-    const res = await this.api.get('/api/campaigns', {
+    const res = await this.api.get('/campaigns', {
       params: { page, ...filters }
     });
     return res.data;

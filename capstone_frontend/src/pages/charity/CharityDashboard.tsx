@@ -21,6 +21,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { authService } from "@/services/auth";
 import { charityService } from "@/services/charity";
 import { toast } from "sonner";
+import { getCharityCoverUrl } from "@/lib/storage";
 
 export default function CharityDashboard() {
   const navigate = useNavigate();
@@ -53,7 +54,7 @@ export default function CharityDashboard() {
       }
 
       // Get charity data
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/me`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/me`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
       });
       
@@ -96,7 +97,7 @@ export default function CharityDashboard() {
 
       // Get donations data
       const donationsRes = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/charities/${charityId}/donations`,
+        `${import.meta.env.VITE_API_URL}/charities/${charityId}/donations`,
         { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } }
       );
 
@@ -136,7 +137,7 @@ export default function CharityDashboard() {
 
       // Get campaigns data
       const campaignsRes = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/charities/${charityId}/campaigns`,
+        `${import.meta.env.VITE_API_URL}/charities/${charityId}/campaigns`,
         { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } }
       );
 
@@ -153,7 +154,7 @@ export default function CharityDashboard() {
 
       // Get posts data for interactions count
       const postsRes = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/charities/${charityId}/posts`,
+        `${import.meta.env.VITE_API_URL}/charities/${charityId}/posts`,
         { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } }
       );
 
@@ -184,7 +185,7 @@ export default function CharityDashboard() {
       if (!token) return;
 
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/charities/${charityId}/donations`,
+        `${import.meta.env.VITE_API_URL}/charities/${charityId}/donations`,
         { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } }
       );
 
@@ -217,7 +218,7 @@ export default function CharityDashboard() {
       if (!token) return;
 
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/charities/${charityId}/posts`,
+        `${import.meta.env.VITE_API_URL}/charities/${charityId}/posts`,
         { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } }
       );
 
@@ -281,9 +282,7 @@ export default function CharityDashboard() {
     }
   };
 
-  const coverImageUrl = charityData?.cover_image 
-    ? `${import.meta.env.VITE_API_URL}/storage/${charityData.cover_image}`
-    : null;
+  const coverImageUrl = getCharityCoverUrl(charityData?.cover_image);
 
   if (isLoading) {
     return (

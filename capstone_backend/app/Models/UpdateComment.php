@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class UpdateComment extends Model
 {
@@ -15,6 +16,7 @@ class UpdateComment extends Model
         'user_id',
         'content',
         'is_hidden',
+        'likes_count',
     ];
 
     protected $casts = [
@@ -39,5 +41,13 @@ class UpdateComment extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the likes for this comment
+     */
+    public function likes(): HasMany
+    {
+        return $this->hasMany(CommentLike::class, 'comment_id');
     }
 }

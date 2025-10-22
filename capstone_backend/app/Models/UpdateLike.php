@@ -10,6 +10,8 @@ class UpdateLike extends Model
 {
     use HasFactory;
 
+    protected $table = 'update_likes';
+
     protected $fillable = [
         'update_id',
         'user_id',

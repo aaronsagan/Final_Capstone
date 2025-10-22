@@ -25,6 +25,9 @@ import { CampaignCardSkeleton } from "@/components/charity/CampaignCardSkeleton"
 import { Search, Plus, Grid3x3, List, Filter } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { charityService } from "@/services/charity";
+import { CreateCampaignModal } from "@/components/charity/CreateCampaignModal";
 
 /**
  * Modern Campaigns Page with Card View
@@ -32,6 +35,7 @@ import { useNavigate } from "react-router-dom";
  */
 const CampaignsPageModern = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -39,91 +43,73 @@ const CampaignsPageModern = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState<number | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   useEffect(() => {
     loadCampaigns();
   }, [statusFilter]);
 
+  const mapBackendStatus = (status?: string): Campaign["status"] => {
+    const s = (status || "").toLowerCase();
+    if (s === "published" || s === "active") return "active";
+    if (s === "completed") return "completed";
+    if (s === "draft") return "draft";
+    if (s === "expired" || s === "closed" || s === "archived") return "expired";
+    return "active";
+  };
+
   const loadCampaigns = async () => {
     try {
       setLoading(true);
-      
-      // TODO: Replace with actual API call
-      // const response = await campaignsService.getCampaigns({
-      //   status: statusFilter === "all" ? undefined : statusFilter,
-      //   search: search || undefined,
-      // });
-      
-      // Mock data for demonstration
-      const mockCampaigns: Campaign[] = [
-        {
-          id: 1,
-          title: "Bags of Hope Program",
-          description: "Providing school supplies to underprivileged children in rural communities",
-          goal: 50000,
-          amountRaised: 35000,
-          donorsCount: 12,
-          views: 258,
-          status: "active",
-          bannerImage: undefined,
-          endDate: "2025-12-31",
-          createdAt: "2025-01-01",
-        },
-        {
-          id: 2,
-          title: "Community Health Initiative",
-          description: "Free medical checkups and health education for local communities",
-          goal: 100000,
-          amountRaised: 75000,
-          donorsCount: 45,
-          views: 512,
-          status: "active",
-          bannerImage: undefined,
-          endDate: "2025-11-30",
-          createdAt: "2025-01-05",
-        },
-        {
-          id: 3,
-          title: "Clean Water Project",
-          description: "Installing water filtration systems in remote villages",
-          goal: 200000,
-          amountRaised: 200000,
-          donorsCount: 89,
-          views: 1024,
-          status: "completed",
-          bannerImage: undefined,
-          endDate: "2025-06-30",
-          createdAt: "2024-12-01",
-        },
-        {
-          id: 4,
-          title: "Education for All",
-          description: "Building classrooms and providing educational materials",
-          goal: 150000,
-          amountRaised: 45000,
-          donorsCount: 23,
-          views: 345,
-          status: "active",
-          bannerImage: undefined,
-          endDate: "2025-10-31",
-          createdAt: "2025-01-10",
-        },
-      ];
-
-      // Filter by status
-      let filtered = mockCampaigns;
-      if (statusFilter !== "all") {
-        filtered = mockCampaigns.filter((c) => c.status === statusFilter);
+      const charityId = user?.charity?.id;
+      if (!charityId) {
+        setCampaigns([]);
+        return;
       }
 
-      // Filter by search
-      if (search) {
-        filtered = filtered.filter(
-          (c) =>
-            c.title.toLowerCase().includes(search.toLowerCase()) ||
-            c.description.toLowerCase().includes(search.toLowerCase())
-        );
-      }
+      // Map UI filter to backend status values
+      const backendStatus =
+        statusFilter === "all"
+          ? undefined
+          : statusFilter === "active"
+          ? "published"
+          : statusFilter === "completed"
+          ? "closed"
+          : statusFilter === "expired"
+          ? "archived"
+          : statusFilter;
+
+      // Fetch campaigns for the current charity from backend
+      const res = await charityService.getCharityCampaigns(charityId, {
+        status: backendStatus,
+      });
+      const backendCampaigns = res.data || res || [];
+
+      // Map backend fields to CampaignCard type
+      const mapped: Campaign[] = backendCampaigns
+        .filter((c: any) => c)
+        .map((c: any) => ({
+          id: c.id,
+          title: c.title,
+          description: c.description || "",
+          goal: c.target_amount || 0,
+          amountRaised: c.current_amount || 0,
+          donorsCount: c.donors_count || 0,
+          views: c.views || 0,
+          status: mapBackendStatus(c.status),
+          bannerImage: c.cover_image_path || c.banner_image || c.image_path,
+          endDate: c.end_date || c.deadline_at || "",
+          createdAt: c.start_date || c.created_at,
+        }));
+
+      // Filter by search (client-side)
+      const filtered = search
+        ? mapped.filter(
+            (c) =>
+              c.title.toLowerCase().includes(search.toLowerCase()) ||
+              c.description.toLowerCase().includes(search.toLowerCase())
+          )
+        : mapped;
 
       setCampaigns(filtered);
     } catch (err) {
@@ -173,11 +159,12 @@ const CampaignsPageModern = () => {
       // TODO: Replace with actual API call
       // await campaignsService.updateCampaignStatus(id, newStatus);
       
-      const newStatus = currentStatus === "active" ? "paused" : "active";
+      // Keep within supported statuses for CampaignCard
+      const newStatus: Campaign["status"] = currentStatus === "active" ? "draft" : "active";
       
       setCampaigns(
         campaigns.map((c) =>
-          c.id === id ? { ...c, status: newStatus as Campaign["status"] } : c
+          c.id === id ? { ...c, status: newStatus } : c
         )
       );
       
@@ -233,7 +220,7 @@ const CampaignsPageModern = () => {
         <Button
           size="lg"
           className="bg-primary hover:bg-primary/90"
-          onClick={() => navigate("/charity/campaigns/create")}
+          onClick={() => setIsCreateOpen(true)}
         >
           <Plus className="h-5 w-5 mr-2" />
           Create Campaign
@@ -366,7 +353,7 @@ const CampaignsPageModern = () => {
             {!search && statusFilter === "all" && (
               <Button
                 className="mt-4"
-                onClick={() => navigate("/charity/campaigns/create")}
+                onClick={() => setIsCreateOpen(true)}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Create Campaign
@@ -411,6 +398,14 @@ const CampaignsPageModern = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Create Campaign Modal (shared) */}
+      <CreateCampaignModal
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        charityId={user?.charity?.id}
+        onSuccess={loadCampaigns}
+      />
     </div>
   );
 };

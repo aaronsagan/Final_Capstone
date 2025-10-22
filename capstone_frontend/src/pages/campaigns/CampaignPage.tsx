@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { campaignService } from "@/services/campaigns";
+import { charityService } from "@/services/charity";
+import { buildStorageUrl } from "@/lib/api";
 
 interface Campaign {
   id: number;
@@ -109,17 +111,30 @@ export default function CampaignPage() {
         createdAt: campaignResponse.start_date || campaignResponse.created_at,
         charity: {
           id: campaignResponse.charity?.id || campaignResponse.charity_id,
-          name: campaignResponse.charity?.name || "Unknown Charity",
+          name: campaignResponse.charity?.name || "",
           logo: campaignResponse.charity?.logo_path,
         },
         story: {
-          problem: "",
-          solution: "",
-          outcome: "",
+          problem: campaignResponse.problem || "",
+          solution: campaignResponse.solution || "",
+          outcome: campaignResponse.outcome || "",
         },
         fundUsage: [],
         gallery: [],
       };
+
+      // If charity name/logo missing, fetch public charity profile
+      if (!mappedCampaign.charity.name && mappedCampaign.charity.id) {
+        try {
+          const ch = await charityService.getPublicCharityProfile(mappedCampaign.charity.id);
+          if (ch) {
+            mappedCampaign.charity.name = ch.name || mappedCampaign.charity.name || "";
+            mappedCampaign.charity.logo = ch.logo_path || mappedCampaign.charity.logo;
+          }
+        } catch (e) {
+          // ignore; will fallback to unknown label later
+        }
+      }
 
       // Fetch updates (optional - graceful fallback)
       let campaignUpdates: Update[] = [];
@@ -173,6 +188,10 @@ export default function CampaignPage() {
         // Silently ignore - endpoint may not exist yet
       }
 
+      // Final fallback for display label
+      if (!mappedCampaign.charity.name) {
+        mappedCampaign.charity.name = "Unknown Charity";
+      }
       setCampaign(mappedCampaign);
       setUpdates(campaignUpdates);
       setSupporters(campaignSupporters);
@@ -282,7 +301,7 @@ export default function CampaignPage() {
       <div className="relative h-[400px] bg-muted overflow-hidden">
         {campaign.bannerImage ? (
           <img
-            src={`${import.meta.env.VITE_API_URL}/storage/${campaign.bannerImage}`}
+            src={buildStorageUrl(campaign.bannerImage) || undefined}
             alt={campaign.title}
             className="w-full h-full object-cover"
           />
@@ -322,7 +341,7 @@ export default function CampaignPage() {
               onClick={() => navigate(`/charities/${campaign.charity.id}`)}
             >
               <Avatar className="h-12 w-12 ring-2 ring-white">
-                <AvatarImage src={campaign.charity.logo} />
+                <AvatarImage src={buildStorageUrl(campaign.charity.logo) || undefined} />
                 <AvatarFallback className="bg-primary text-primary-foreground">
                   {campaign.charity.name.charAt(0)}
                 </AvatarFallback>
@@ -412,7 +431,7 @@ export default function CampaignPage() {
                       <CardContent className="pt-6">
                         <div className="flex items-start gap-3 mb-3">
                           <Avatar className="h-10 w-10">
-                            <AvatarImage src={campaign.charity.logo} />
+                            <AvatarImage src={buildStorageUrl(campaign.charity.logo) || undefined} />
                             <AvatarFallback className="bg-primary text-primary-foreground">
                               {campaign.charity.name.charAt(0)}
                             </AvatarFallback>

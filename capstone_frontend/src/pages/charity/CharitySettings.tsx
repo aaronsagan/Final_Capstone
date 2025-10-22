@@ -79,7 +79,7 @@ export default function CharitySettings() {
     try {
       // Check both localStorage and sessionStorage for token
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/me`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/me`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

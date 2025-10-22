@@ -1,2 +1,2 @@
-// Re-export the new CommunityFeed component
-export { default } from './CommunityFeed';
+// Re-export the new CommunityNewsfeed component
+export { default } from './CommunityNewsfeed';

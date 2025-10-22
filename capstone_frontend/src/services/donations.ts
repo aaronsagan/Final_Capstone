@@ -102,7 +102,7 @@ class DonationsService {
    */
   async getCharityDonations(charityId: number, page: number = 1): Promise<PaginatedResponse<Donation>> {
     const response = await this.apiClient.get<PaginatedResponse<Donation>>(
-      `/api/charities/${charityId}/donations`,
+      `/charities/${charityId}/donations`,
       { params: { page } }
     );
     return response.data;
@@ -116,7 +116,7 @@ class DonationsService {
     status: 'completed' | 'rejected'
   ): Promise<Donation> {
     const response = await this.apiClient.patch<Donation>(
-      `/api/donations/${donationId}/confirm`,
+      `/donations/${donationId}/confirm`,
       { status }
     );
     return response.data;
@@ -131,7 +131,7 @@ class DonationsService {
     reason?: string
   ): Promise<Donation> {
     const response = await this.apiClient.patch<Donation>(
-      `/api/donations/${donationId}/status`,
+      `/donations/${donationId}/status`,
       { status, reason }
     );
     return response.data;
@@ -143,7 +143,7 @@ class DonationsService {
    * Create a new donation (Donor makes a donation)
    */
   async createDonation(data: DonationFormData): Promise<Donation> {
-    const response = await this.apiClient.post<Donation>('/api/donations', data);
+    const response = await this.apiClient.post<Donation>('/donations', data);
     return response.data;
   }
 
@@ -156,7 +156,7 @@ class DonationsService {
     if (proofType) formData.append('proof_type', proofType);
 
     const response = await this.apiClient.post<Donation>(
-      `/api/donations/${donationId}/proof`,
+      `/donations/${donationId}/proof`,
       formData,
       {
         headers: {
@@ -172,7 +172,7 @@ class DonationsService {
    */
   async getMyDonations(page: number = 1): Promise<PaginatedResponse<Donation>> {
     const response = await this.apiClient.get<PaginatedResponse<Donation>>(
-      '/api/me/donations',
+      '/me/donations',
       { params: { page } }
     );
     return response.data;
@@ -183,7 +183,7 @@ class DonationsService {
    */
   async downloadReceipt(donationId: number): Promise<Blob> {
     const response = await this.apiClient.get(
-      `/api/donations/${donationId}/receipt`,
+      `/donations/${donationId}/receipt`,
       {
         responseType: 'blob',
       }

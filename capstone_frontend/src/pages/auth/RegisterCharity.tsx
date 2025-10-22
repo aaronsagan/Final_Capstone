@@ -8,6 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { FileUploader, type UploadedFile } from '@/components/auth/FileUploader';
+import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter';
+import { PhilippineAddressForm } from '@/components/forms/PhilippineAddressForm';
+import { PrimaryContactFields } from '@/components/forms/PrimaryContactFields';
 import { CharityTermsDialog } from '@/components/legal/CharityTermsDialog';
 import { CharityPrivacyDialog } from '@/components/legal/CharityPrivacyDialog';
 import { authService, type CharityRegistrationData } from '@/services/auth';
@@ -50,16 +53,23 @@ export default function RegisterCharity() {
     registration_number: '',
     tax_id: '',
     website: '',
-    contact_person_name: '',
-    contact_email: '',
-    contact_phone: '',
+    primary_first_name: '',
+    primary_middle_initial: '',
+    primary_last_name: '',
+    primary_position: '',
+    primary_email: '',
+    primary_phone: '',
     password: '',
     password_confirmation: '',
-    address: '',
+    street_address: '',
+    barangay: '',
+    city: '',
+    province: '',
     region: '',
-    municipality: '',
+    full_address: '',
     nonprofit_category: '',
     mission_statement: '',
+    vision_statement: '',
     description: '',
     accept_terms: false,
     confirm_truthfulness: false,
@@ -126,17 +136,49 @@ export default function RegisterCharity() {
       if (!formData.organization_name) newErrors.organization_name = 'Required';
       if (!formData.registration_number) newErrors.registration_number = 'Required';
       if (!formData.tax_id) newErrors.tax_id = 'Required';
-      if (!formData.contact_person_name) newErrors.contact_person_name = 'Required';
-      if (!formData.contact_email) newErrors.contact_email = 'Required';
-      if (!formData.contact_phone) newErrors.contact_phone = 'Required';
-      if (!formData.password || (formData.password as string).length < 6) newErrors.password = 'Min 6 characters';
+      
+      // Primary Contact Validation
+      if (!formData.primary_first_name) newErrors.primary_first_name = 'First name is required';
+      else if (!/^[A-Za-zÑñ\s]+$/.test(formData.primary_first_name)) newErrors.primary_first_name = 'Only letters allowed';
+      
+      if (formData.primary_middle_initial && !/^[A-Za-zÑñ]$/.test(formData.primary_middle_initial)) {
+        newErrors.primary_middle_initial = 'Must be a single letter';
+      }
+      
+      if (!formData.primary_last_name) newErrors.primary_last_name = 'Last name is required';
+      else if (!/^[A-Za-zÑñ\s]+$/.test(formData.primary_last_name)) newErrors.primary_last_name = 'Only letters allowed';
+      
+      if (!formData.primary_email) newErrors.primary_email = 'Email is required';
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.primary_email)) newErrors.primary_email = 'Invalid email format';
+      
+      if (!formData.primary_phone) newErrors.primary_phone = 'Phone number is required';
+      else if (!/^09\d{9}$/.test(formData.primary_phone)) newErrors.primary_phone = 'Must be 09XXXXXXXXX (11 digits)';
+      
+      // Password strength validation
+      if (!formData.password) {
+        newErrors.password = 'Password is required';
+      } else {
+        const pwd = formData.password as string;
+        if (pwd.length < 8) {
+          newErrors.password = 'Password must be at least 8 characters';
+        } else if (!/[A-Z]/.test(pwd)) {
+          newErrors.password = 'Password must contain an uppercase letter';
+        } else if (!/[a-z]/.test(pwd)) {
+          newErrors.password = 'Password must contain a lowercase letter';
+        } else if (!/\d/.test(pwd)) {
+          newErrors.password = 'Password must contain a number';
+        } else if (!/[!@#$%^&*(),.?":{}|<>]/.test(pwd)) {
+          newErrors.password = 'Password must contain a special character';
+        }
+      }
       if (!formData.password_confirmation) newErrors.password_confirmation = 'Required';
       if (formData.password && formData.password_confirmation && formData.password !== formData.password_confirmation) {
         newErrors.password_confirmation = 'Passwords do not match';
       }
-      if (!formData.address) newErrors.address = 'Required';
+      if (!formData.street_address) newErrors.street_address = 'Required';
       if (!formData.region) newErrors.region = 'Required';
-      if (!formData.municipality) newErrors.municipality = 'Required';
+      if (!formData.province) newErrors.province = 'Required';
+      if (!formData.city) newErrors.city = 'Required';
       if (!formData.nonprofit_category) newErrors.nonprofit_category = 'Required';
     }
 
@@ -238,6 +280,22 @@ export default function RegisterCharity() {
         submitData.append('doc_types[]', 'additional_docs');
       });
 
+      // Debug log
+      console.log('Submitting charity registration with data:', {
+        formFields: Object.fromEntries(
+          Array.from(submitData.entries()).filter(([key]) => !key.includes('[]'))
+        ),
+        hasLogo: !!logo,
+        hasCover: !!coverImage,
+        documentCounts: {
+          registration_cert: documents.registration_cert.length,
+          tax_registration: documents.tax_registration.length,
+          financial_statement: documents.financial_statement.length,
+          representative_id: documents.representative_id.length,
+          additional_docs: documents.additional_docs.length,
+        }
+      });
+
       await authService.registerCharity(submitData as any);
 
       // Clear draft after successful submission
@@ -249,9 +307,45 @@ export default function RegisterCharity() {
 
       // Redirect to login page
       navigate('/auth/login');
-    } catch (error) {
-      if (error instanceof Error) {
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      
+      // Handle axios errors with response data
+      if (error.response?.data?.errors) {
+        const backendErrors = error.response.data.errors;
+        const errorMessages: string[] = [];
+        
+        // Display each validation error
+        Object.entries(backendErrors).forEach(([field, messages]) => {
+          if (Array.isArray(messages)) {
+            messages.forEach((msg) => {
+              errorMessages.push(`${field}: ${msg}`);
+            });
+          }
+        });
+        
+        toast.error('Validation failed', {
+          description: errorMessages.join('\n') || 'Please check your input and try again',
+        });
+        
+        // Set errors to display in form
+        const formattedErrors: Record<string, string> = {};
+        Object.entries(backendErrors).forEach(([field, messages]) => {
+          if (Array.isArray(messages) && messages.length > 0) {
+            formattedErrors[field] = messages[0];
+          }
+        });
+        setErrors(formattedErrors);
+      } else if (error.response?.data?.message) {
+        toast.error('Registration failed', { 
+          description: error.response.data.message 
+        });
+      } else if (error instanceof Error) {
         toast.error('Registration failed', { description: error.message });
+      } else {
+        toast.error('Registration failed', { 
+          description: 'An unexpected error occurred' 
+        });
       }
     } finally {
       setIsLoading(false);
@@ -373,59 +467,6 @@ export default function RegisterCharity() {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="password">
-                    Password <span className="text-destructive">*</span>
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={formData.password || ''}
-                      onChange={(e) => handleChange('password', e.target.value)}
-                      className={cn(errors.password && 'border-destructive', 'pr-10')}
-                      placeholder="At least 6 characters"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      tabIndex={-1}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                  {errors.password && (
-                    <p className="text-sm text-destructive">{errors.password}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password_confirmation">
-                    Confirm Password <span className="text-destructive">*</span>
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="password_confirmation"
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      value={formData.password_confirmation || ''}
-                      onChange={(e) => handleChange('password_confirmation', e.target.value)}
-                      className={cn(errors.password_confirmation && 'border-destructive', 'pr-10')}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      tabIndex={-1}
-                    >
-                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                  {errors.password_confirmation && (
-                    <p className="text-sm text-destructive">{errors.password_confirmation}</p>
-                  )}
-                </div>
-
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="website">Website</Label>
                   <Input
@@ -439,110 +480,123 @@ export default function RegisterCharity() {
               </div>
 
               <div className="pt-4 border-t">
-                <h3 className="text-lg font-semibold mb-4">Primary Contact</h3>
+                <h3 className="text-lg font-semibold mb-4">Account Security</h3>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="contact_person_name">
-                      Contact person name <span className="text-destructive">*</span>
+                    <Label htmlFor="password">
+                      Password <span className="text-destructive">*</span>
                     </Label>
-                    <Input
-                      id="contact_person_name"
-                      value={formData.contact_person_name}
-                      onChange={(e) => handleChange('contact_person_name', e.target.value)}
-                      className={cn(errors.contact_person_name && 'border-destructive')}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={formData.password || ''}
+                        onChange={(e) => handleChange('password', e.target.value)}
+                        className={cn(errors.password && 'border-destructive', 'pr-10')}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        tabIndex={-1}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    {errors.password && (
+                      <p className="text-sm text-destructive">{errors.password}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="contact_email">
-                      Email <span className="text-destructive">*</span>
+                    <Label htmlFor="password_confirmation">
+                      Confirm Password <span className="text-destructive">*</span>
                     </Label>
-                    <Input
-                      id="contact_email"
-                      type="email"
-                      value={formData.contact_email}
-                      onChange={(e) => handleChange('contact_email', e.target.value)}
-                      className={cn(errors.contact_email && 'border-destructive')}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="password_confirmation"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        value={formData.password_confirmation || ''}
+                        onChange={(e) => handleChange('password_confirmation', e.target.value)}
+                        className={cn(errors.password_confirmation && 'border-destructive', 'pr-10')}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        tabIndex={-1}
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    {errors.password_confirmation && (
+                      <p className="text-sm text-destructive">{errors.password_confirmation}</p>
+                    )}
                   </div>
 
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="contact_phone">
-                      Phone <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="contact_phone"
-                      type="tel"
-                      value={formData.contact_phone}
-                      onChange={(e) => handleChange('contact_phone', e.target.value)}
-                      className={cn(errors.contact_phone && 'border-destructive')}
-                    />
+                  <div className="md:col-span-2">
+                    <PasswordStrengthMeter password={formData.password || ''} />
                   </div>
                 </div>
               </div>
 
               <div className="pt-4 border-t">
+                <h3 className="text-lg font-semibold mb-4">Primary Contact</h3>
+                <PrimaryContactFields
+                  values={{
+                    primary_first_name: formData.primary_first_name || '',
+                    primary_middle_initial: formData.primary_middle_initial || '',
+                    primary_last_name: formData.primary_last_name || '',
+                    primary_position: formData.primary_position || '',
+                    primary_email: formData.primary_email || '',
+                    primary_phone: formData.primary_phone || '',
+                  }}
+                  errors={errors}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="pt-4 border-t">
                 <h3 className="text-lg font-semibold mb-4">Location</h3>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="address">
-                      Address <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="address"
-                      value={formData.address}
-                      onChange={(e) => handleChange('address', e.target.value)}
-                      className={cn(errors.address && 'border-destructive')}
-                    />
-                  </div>
+                <PhilippineAddressForm
+                  values={{
+                    street_address: formData.street_address || '',
+                    barangay: formData.barangay || '',
+                    city: formData.city || '',
+                    province: formData.province || '',
+                    region: formData.region || '',
+                    full_address: formData.full_address || '',
+                  }}
+                  errors={errors}
+                  onChange={handleChange}
+                />
+              </div>
 
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="region">
-                        Region <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="region"
-                        value={formData.region}
-                        onChange={(e) => handleChange('region', e.target.value)}
-                        className={cn(errors.region && 'border-destructive')}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="municipality">
-                        Municipality <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="municipality"
-                        value={formData.municipality}
-                        onChange={(e) => handleChange('municipality', e.target.value)}
-                        className={cn(errors.municipality && 'border-destructive')}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="nonprofit_category">
-                        Category <span className="text-destructive">*</span>
-                      </Label>
-                      <select
-                        id="nonprofit_category"
-                        value={formData.nonprofit_category}
-                        onChange={(e) => handleChange('nonprofit_category', e.target.value)}
-                        className={cn(
-                          'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                          errors.nonprofit_category && 'border-destructive'
-                        )}
-                      >
-                        <option value="">Select category</option>
-                        {NONPROFIT_CATEGORIES.map((cat) => (
-                          <option key={cat} value={cat}>
-                            {cat}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
+              <div className="pt-4 border-t">
+                <h3 className="text-lg font-semibold mb-4">Organization Category</h3>
+                <div className="space-y-2">
+                  <Label htmlFor="nonprofit_category">
+                    Category <span className="text-destructive">*</span>
+                  </Label>
+                  <select
+                    id="nonprofit_category"
+                    value={formData.nonprofit_category}
+                    onChange={(e) => handleChange('nonprofit_category', e.target.value)}
+                    className={cn(
+                      'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      errors.nonprofit_category && 'border-destructive'
+                    )}
+                  >
+                    <option value="">Select category</option>
+                    {NONPROFIT_CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.nonprofit_category && (
+                    <p className="text-sm text-destructive">{errors.nonprofit_category}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -551,48 +605,114 @@ export default function RegisterCharity() {
           {/* Step 2: Profile & Mission */}
           {currentStep === 2 && (
             <div className="space-y-6">
-              <h2 className="text-2xl font-bold">Profile & Mission</h2>
-
-              <div className="space-y-2">
-                <Label htmlFor="mission_statement">
-                  Mission statement <span className="text-destructive">*</span>
-                </Label>
-                <Textarea
-                  id="mission_statement"
-                  value={formData.mission_statement}
-                  onChange={(e) => handleChange('mission_statement', e.target.value)}
-                  rows={3}
-                  placeholder="A brief statement of your organization's purpose and goals..."
-                  className={cn(errors.mission_statement && 'border-destructive')}
-                />
-                {errors.mission_statement && (
-                  <p className="text-sm text-destructive">{errors.mission_statement}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">
-                  Detailed description <span className="text-destructive">*</span>
-                </Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => handleChange('description', e.target.value)}
-                  rows={6}
-                  placeholder="Tell us more about your organization, programs, and impact..."
-                  className={cn(errors.description && 'border-destructive')}
-                />
-                {errors.description && (
-                  <p className="text-sm text-destructive">{errors.description}</p>
-                )}
-              </div>
-
-              <div className="pt-4 border-t">
-                <h3 className="text-lg font-semibold mb-4">Media (Optional)</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Add your organization's logo and cover image to enhance your profile.
+              <div>
+                <h2 className="text-2xl font-bold">Profile & Mission</h2>
+                <p className="text-muted-foreground mt-1">
+                  Share your organization's purpose, vision, and impact
                 </p>
-                <div className="grid md:grid-cols-2 gap-4">
+              </div>
+
+              {/* Mission & Vision Section */}
+              <div className="p-6 bg-muted/30 rounded-lg border space-y-6">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <span className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">1</span>
+                  Mission & Vision
+                </h3>
+
+                <div className="space-y-2">
+                  <Label htmlFor="mission_statement">
+                    Mission Statement <span className="text-destructive">*</span>
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    What is your organization's core purpose? What do you aim to achieve?
+                  </p>
+                  <Textarea
+                    id="mission_statement"
+                    value={formData.mission_statement}
+                    onChange={(e) => handleChange('mission_statement', e.target.value)}
+                    rows={6}
+                    maxLength={6000}
+                    placeholder="Example: To provide quality education and resources to underprivileged children in Metro Manila..."
+                    className={cn(errors.mission_statement && 'border-destructive')}
+                  />
+                  {errors.mission_statement && (
+                    <p className="text-sm text-destructive">{errors.mission_statement}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {formData.mission_statement?.length || 0} / 6000 characters (~{Math.round((formData.mission_statement?.length || 0) / 6)} words, max 1000 words)
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="vision_statement">
+                    Vision Statement <span className="text-muted-foreground text-xs">(Optional)</span>
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    What is your long-term aspiration? What future do you envision?
+                  </p>
+                  <Textarea
+                    id="vision_statement"
+                    value={formData.vision_statement}
+                    onChange={(e) => handleChange('vision_statement', e.target.value)}
+                    rows={6}
+                    maxLength={6000}
+                    placeholder="Example: A Philippines where every child has access to quality education and opportunities to succeed..."
+                    className={cn(errors.vision_statement && 'border-destructive')}
+                  />
+                  {errors.vision_statement && (
+                    <p className="text-sm text-destructive">{errors.vision_statement}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {formData.vision_statement?.length || 0} / 6000 characters (~{Math.round((formData.vision_statement?.length || 0) / 6)} words, max 1000 words)
+                  </p>
+                </div>
+              </div>
+
+              {/* About Your Organization Section */}
+              <div className="p-6 bg-muted/30 rounded-lg border space-y-6">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <span className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">2</span>
+                  About Your Organization
+                </h3>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">
+                    Detailed Description <span className="text-destructive">*</span>
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Provide a comprehensive overview of your organization, programs, services, and impact on the community.
+                  </p>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => handleChange('description', e.target.value)}
+                    rows={12}
+                    maxLength={12000}
+                    placeholder="Tell us about:&#10;• Your organization's history and background&#10;• Programs and services you offer&#10;• Communities you serve&#10;• Impact and achievements&#10;• What makes your organization unique"
+                    className={cn(errors.description && 'border-destructive')}
+                  />
+                  {errors.description && (
+                    <p className="text-sm text-destructive">{errors.description}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {formData.description?.length || 0} / 12000 characters (~{Math.round((formData.description?.length || 0) / 6)} words, max 2000 words)
+                  </p>
+                </div>
+              </div>
+
+              {/* Media Section */}
+              <div className="p-6 bg-muted/30 rounded-lg border space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <span className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">3</span>
+                    Media & Branding
+                    <span className="text-xs font-normal text-muted-foreground ml-2">(Optional)</span>
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Add your organization's logo and cover image to create a professional profile.
+                  </p>
+                </div>
+                <div className="grid md:grid-cols-2 gap-6">
                   {/* Logo Upload */}
                   <div className="space-y-2">
                     <Label>Organization Logo</Label>
@@ -776,12 +896,44 @@ export default function RegisterCharity() {
                   <h3 className="font-semibold">Contact Information</h3>
                   <dl className="grid grid-cols-2 gap-2 text-sm">
                     <dt className="text-muted-foreground">Contact person:</dt>
-                    <dd className="font-medium">{formData.contact_person_name}</dd>
+                    <dd className="font-medium">
+                      {[
+                        formData.primary_first_name,
+                        formData.primary_middle_initial,
+                        formData.primary_last_name
+                      ].filter(Boolean).join(' ')}
+                    </dd>
+                    {formData.primary_position && (
+                      <>
+                        <dt className="text-muted-foreground">Position:</dt>
+                        <dd className="font-medium">{formData.primary_position}</dd>
+                      </>
+                    )}
                     <dt className="text-muted-foreground">Email:</dt>
-                    <dd className="font-medium">{formData.contact_email}</dd>
+                    <dd className="font-medium">{formData.primary_email}</dd>
                     <dt className="text-muted-foreground">Phone:</dt>
-                    <dd className="font-medium">{formData.contact_phone}</dd>
+                    <dd className="font-medium">{formData.primary_phone}</dd>
                   </dl>
+                </div>
+
+                <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                  <h3 className="font-semibold">Mission & Vision</h3>
+                  <div className="space-y-3 text-sm">
+                    <div>
+                      <dt className="text-muted-foreground font-medium mb-1">Mission Statement:</dt>
+                      <dd className="text-foreground leading-relaxed">{formData.mission_statement}</dd>
+                    </div>
+                    {formData.vision_statement && (
+                      <div>
+                        <dt className="text-muted-foreground font-medium mb-1">Vision Statement:</dt>
+                        <dd className="text-foreground leading-relaxed">{formData.vision_statement}</dd>
+                      </div>
+                    )}
+                    <div>
+                      <dt className="text-muted-foreground font-medium mb-1">About:</dt>
+                      <dd className="text-foreground leading-relaxed">{formData.description}</dd>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="p-4 bg-muted/50 rounded-lg space-y-3">

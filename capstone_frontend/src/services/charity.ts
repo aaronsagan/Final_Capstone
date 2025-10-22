@@ -31,7 +31,7 @@ class CharityService {
 
   // Get all donation channels for a charity
   async getDonationChannels(charityId: number) {
-    const res = await this.api.get(`/api/charities/${charityId}/channels`);
+    const res = await this.api.get(`/charities/${charityId}/channels`);
     return res.data;
   }
 
@@ -64,7 +64,7 @@ class CharityService {
     
     if (payload.qr_image) fd.append('qr_image', payload.qr_image);
     
-    const res = await this.api.post(`/api/charities/${charityId}/channels`, fd, {
+    const res = await this.api.post(`/charities/${charityId}/channels`, fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return res.data;
@@ -146,32 +146,44 @@ class CharityService {
 
   // Get public charity profile
   async getPublicCharityProfile(charityId: number) {
-    const res = await this.api.get(`/api/charities/${charityId}`);
+    const res = await this.api.get(`/charities/${charityId}`);
     return res.data;
   }
 
   // Get charity campaigns (public)
   async getCharityCampaigns(charityId: number, params?: { status?: string; page?: number }) {
-    const res = await this.api.get(`/api/charities/${charityId}/campaigns`, { params });
+    const res = await this.api.get(`/charities/${charityId}/campaigns`, { params });
     return res.data;
   }
 
   // Follow/unfollow charity
   async toggleFollow(charityId: number) {
-    const res = await this.api.post(`/api/charities/${charityId}/follow`);
+    const res = await this.api.post(`/charities/${charityId}/follow`);
     return res.data;
   }
 
   // Check if user follows charity
   async checkFollowStatus(charityId: number) {
-    const res = await this.api.get(`/api/charities/${charityId}/follow-status`);
+    const res = await this.api.get(`/charities/${charityId}/follow-status`);
     return res.data;
   }
 
   // Get charity stats (public)
   async getCharityStats(charityId: number) {
-    const res = await this.api.get(`/api/charities/${charityId}/stats`);
-    return res.data;
+    try {
+      const res = await this.api.get(`/charities/${charityId}/stats`);
+      return res.data;
+    } catch (error: any) {
+      if (error?.response?.status === 404) {
+        return {
+          total_campaigns: 0,
+          active_campaigns: 0,
+          followers_count: 0,
+          total_donations: 0,
+        };
+      }
+      throw error;
+    }
   }
 }
 

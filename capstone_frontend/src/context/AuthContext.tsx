@@ -24,13 +24,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Check if user is already authenticated on mount
     const checkSession = async () => {
       const token = authService.getToken();
+      console.log('🔑 Checking session, token exists:', !!token);
       if (token) {
         try {
+          console.log('🔄 Fetching current user...');
           // Fetch current user from backend
           const currentUser = await authService.getCurrentUser();
+          console.log('✅ Session valid, user:', currentUser);
           setUser(currentUser);
-        } catch (error) {
-          console.error('Session check failed:', error);
+        } catch (error: any) {
+          console.error('❌ Session check failed:', error?.response?.status, error?.message);
           // Clear invalid token
           authService.clearToken();
         }

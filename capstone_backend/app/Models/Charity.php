@@ -8,9 +8,12 @@ class Charity extends Model
 {
     protected $fillable = [
         'owner_id','name','acronym','legal_trading_name','reg_no','tax_id',
-        'mission','vision','goals','website','services',
+        'mission','vision','goals','website','services','description',
         'contact_email','contact_phone',
-        'address','region','municipality','category',
+        'first_name','middle_initial','last_name',
+        'primary_first_name','primary_middle_initial','primary_last_name','primary_position',
+        'primary_email','primary_phone',
+        'address','street_address','barangay','city','province','region','municipality','full_address','category',
         'logo_path','cover_image',
         'verification_status','verified_at','verification_notes'
     ];

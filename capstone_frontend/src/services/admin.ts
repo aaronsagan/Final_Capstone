@@ -100,27 +100,27 @@ class AdminService {
 
   // --- Dashboard Metrics ---
   async getDashboardMetrics(): Promise<DashboardMetrics> {
-    const response = await this.apiClient.get<DashboardMetrics>('/api/metrics');
+    const response = await this.apiClient.get<DashboardMetrics>('/metrics');
     return response.data;
   }
 
   // --- Charity Verification ---
   async getPendingCharities(page: number = 1): Promise<PaginatedResponse<Charity>> {
-    const response = await this.apiClient.get<PaginatedResponse<Charity>>('/api/admin/verifications', {
+    const response = await this.apiClient.get<PaginatedResponse<Charity>>('/admin/verifications', {
       params: { page }
     });
     return response.data;
   }
 
   async approveCharity(charityId: number, notes?: string): Promise<{ message: string }> {
-    const response = await this.apiClient.patch(`/api/admin/charities/${charityId}/approve`, {
+    const response = await this.apiClient.patch(`/admin/charities/${charityId}/approve`, {
       notes
     });
     return response.data;
   }
 
   async rejectCharity(charityId: number, notes: string): Promise<{ message: string }> {
-    const response = await this.apiClient.patch(`/api/admin/charities/${charityId}/reject`, {
+    const response = await this.apiClient.patch(`/admin/charities/${charityId}/reject`, {
       notes
     });
     return response.data;
@@ -129,34 +129,34 @@ class AdminService {
   // --- User Management ---
   async getUsers(page: number = 1, filters?: { role?: string; status?: string; search?: string }): Promise<PaginatedResponse<User>> {
     // Note: This endpoint needs to be added to the backend
-    const response = await this.apiClient.get<PaginatedResponse<User>>('/api/admin/users', {
+    const response = await this.apiClient.get<PaginatedResponse<User>>('/admin/users', {
       params: { page, ...filters }
     });
     return response.data;
   }
 
   async suspendUser(userId: number): Promise<{ message: string }> {
-    const response = await this.apiClient.patch(`/api/admin/users/${userId}/suspend`);
+    const response = await this.apiClient.patch(`/admin/users/${userId}/suspend`);
     return response.data;
   }
 
   async activateUser(userId: number): Promise<{ message: string }> {
     // Note: This endpoint needs to be added to the backend
-    const response = await this.apiClient.patch(`/api/admin/users/${userId}/activate`);
+    const response = await this.apiClient.patch(`/admin/users/${userId}/activate`);
     return response.data;
   }
 
   // --- Charity Management ---
   async getAllCharities(page: number = 1, filters?: { status?: string; search?: string }): Promise<PaginatedResponse<Charity>> {
     // Note: This endpoint needs to be added to the backend
-    const response = await this.apiClient.get<PaginatedResponse<Charity>>('/api/admin/charities', {
+    const response = await this.apiClient.get<PaginatedResponse<Charity>>('/admin/charities', {
       params: { page, ...filters }
     });
     return response.data;
   }
 
   async getCharityDetails(charityId: number): Promise<Charity> {
-    const response = await this.apiClient.get<Charity>(`/api/charities/${charityId}`);
+    const response = await this.apiClient.get<Charity>(`/charities/${charityId}`);
     return response.data;
   }
 }

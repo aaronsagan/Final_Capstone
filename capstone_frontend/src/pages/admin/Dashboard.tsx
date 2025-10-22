@@ -64,7 +64,7 @@ export default function Dashboard() {
       setIsLoading(true);
       
       // Fetch metrics
-      const metricsResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/metrics`);
+      const metricsResponse = await fetch(`${import.meta.env.VITE_API_URL}/metrics`);
       if (metricsResponse.ok) {
         const metricsData = await metricsResponse.json();
         setMetrics(metricsData);
@@ -73,7 +73,7 @@ export default function Dashboard() {
       // Fetch recent users
       // Check both localStorage and sessionStorage for token
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-      const usersResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/users`, {
+      const usersResponse = await fetch(`${import.meta.env.VITE_API_URL}/admin/users`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (usersResponse.ok) {
@@ -88,7 +88,7 @@ export default function Dashboard() {
       }
 
       // Fetch pending charities
-      const charitiesResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/charities`, {
+      const charitiesResponse = await fetch(`${import.meta.env.VITE_API_URL}/admin/charities`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (charitiesResponse.ok) {
@@ -119,7 +119,7 @@ export default function Dashboard() {
     try {
       // Check both localStorage and sessionStorage for token
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/charities/${charityId}/${action}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/charities/${charityId}/${action}`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -140,7 +140,7 @@ export default function Dashboard() {
     try {
       // Check both localStorage and sessionStorage for token
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/users/${userId}/${action}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/users/${userId}/${action}`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}` }
       });

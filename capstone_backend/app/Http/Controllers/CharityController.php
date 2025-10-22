@@ -291,4 +291,99 @@ class CharityController extends Controller
             'message' => 'Donation channels are available to logged-in donors only.'
         ], 403);
     }
+
+    /**
+     * Update charity profile (limited fields for Edit Profile form)
+     * Only allows editing: mission, vision, description, logo, cover_photo, 
+     * location info, and primary contact info
+     */
+    public function updateProfile(Request $r)
+    {
+        try {
+            $user = $r->user();
+            
+            // Get the charity owned by this user
+            $charity = Charity::where('owner_id', $user->id)->first();
+            
+            if (!$charity) {
+                return response()->json([
+                    'message' => 'No charity found for this account'
+                ], 404);
+            }
+
+            // Validate the request - all fields are optional for partial updates
+            $validated = $r->validate([
+                'mission' => 'nullable|string|min:30|max:6000',
+                'vision' => 'nullable|string|max:6000',
+                'description' => 'nullable|string|min:50|max:12000',
+                'logo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+                'cover_photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+                'street_address' => 'nullable|string',
+                'barangay' => 'nullable|string',
+                'city' => 'nullable|string',
+                'province' => 'nullable|string',
+                'region' => 'nullable|string',
+                'full_address' => 'nullable|string',
+                'first_name' => 'nullable|string|max:50',
+                'middle_initial' => 'nullable|string|max:1',
+                'last_name' => 'nullable|string|max:50',
+                'contact_email' => 'nullable|email|unique:charities,contact_email,' . $charity->id,
+                'contact_phone' => ['nullable', 'regex:/^(09|\+639)\d{9}$/']
+            ]);
+
+            // Handle logo upload
+            if ($r->hasFile('logo')) {
+                // Delete old logo if exists
+                if ($charity->logo_path) {
+                    Storage::disk('public')->delete($charity->logo_path);
+                }
+                
+                // Store new logo in charity-specific folder
+                $logoPath = $r->file('logo')->store("charities/{$charity->id}", 'public');
+                $validated['logo_path'] = $logoPath;
+            }
+
+            // Handle cover photo upload
+            if ($r->hasFile('cover_photo')) {
+                // Delete old cover photo if exists
+                if ($charity->cover_image) {
+                    Storage::disk('public')->delete($charity->cover_image);
+                }
+                
+                // Store new cover photo in charity-specific folder
+                $coverPath = $r->file('cover_photo')->store("charities/{$charity->id}", 'public');
+                $validated['cover_image'] = $coverPath;
+            }
+
+            // Filter out empty values to only update provided fields
+            $dataToUpdate = array_filter($validated, function($value) {
+                return $value !== null && $value !== '';
+            });
+
+            // Update the charity with only the provided fields
+            $charity->update($dataToUpdate);
+
+            return response()->json([
+                'message' => 'Charity profile updated successfully',
+                'charity' => $charity->fresh()
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            \Log::error('Charity profile update failed', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'user_id' => $r->user()->id
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to update charity profile',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

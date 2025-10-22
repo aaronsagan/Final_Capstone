@@ -30,13 +30,13 @@ class UpdatesService {
 
   // Get all updates for logged-in charity
   async getMyUpdates() {
-    const res = await this.api.get('/api/updates');
+    const res = await this.api.get('/updates');
     return res.data;
   }
 
   // Get updates for a specific charity (public)
   async getCharityUpdates(charityId: number) {
-    const res = await this.api.get(`/api/charities/${charityId}/updates`);
+    const res = await this.api.get(`/charities/${charityId}/updates`);
     return res.data;
   }
 
@@ -59,7 +59,7 @@ class UpdatesService {
       });
     }
 
-    const res = await this.api.post('/api/updates', formData, {
+    const res = await this.api.post('/updates', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return res.data;
@@ -67,47 +67,53 @@ class UpdatesService {
 
   // Update existing update
   async updateUpdate(id: number, content: string) {
-    const res = await this.api.put(`/api/updates/${id}`, { content });
+    const res = await this.api.put(`/updates/${id}`, { content });
     return res.data;
   }
 
   // Delete update
   async deleteUpdate(id: number) {
-    await this.api.delete(`/api/updates/${id}`);
+    await this.api.delete(`/updates/${id}`);
   }
 
   // Toggle pin status
   async togglePin(id: number) {
-    const res = await this.api.post(`/api/updates/${id}/pin`);
+    const res = await this.api.post(`/updates/${id}/pin`);
     return res.data;
   }
 
   // Toggle like
   async toggleLike(id: number) {
-    const res = await this.api.post(`/api/updates/${id}/like`);
+    const res = await this.api.post(`/updates/${id}/like`);
     return res.data;
   }
 
   // Get comments for an update
   async getComments(updateId: number) {
-    const res = await this.api.get(`/api/updates/${updateId}/comments`);
+    const res = await this.api.get(`/updates/${updateId}/comments`);
     return res.data;
   }
 
   // Add comment
   async addComment(updateId: number, content: string) {
-    const res = await this.api.post(`/api/updates/${updateId}/comments`, { content });
+    const res = await this.api.post(`/updates/${updateId}/comments`, { content });
+    return res.data;
+  }
+
+  // Update/Edit comment
+  async updateComment(commentId: number, content: string) {
+    const res = await this.api.put(`/comments/${commentId}`, { content });
     return res.data;
   }
 
   // Delete comment
   async deleteComment(commentId: number) {
-    await this.api.delete(`/api/comments/${commentId}`);
+    await this.api.delete(`/comments/${commentId}`);
   }
 
   // Hide/unhide comment (charity admin only)
   async hideComment(commentId: number) {
-    const res = await this.api.patch(`/api/comments/${commentId}/hide`);
+    const res = await this.api.patch(`/comments/${commentId}/hide`);
     return res.data;
   }
 }

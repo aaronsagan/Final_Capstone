@@ -43,7 +43,7 @@ export default function CharityPosts() {
     try {
       setLoading(true);
       const token = authService.getToken();
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/my-posts`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/my-posts`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -97,7 +97,7 @@ export default function CharityPosts() {
         formData.append('image', selectedImage);
       }
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/posts`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/posts`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -138,7 +138,7 @@ export default function CharityPosts() {
 
     try {
       const token = authService.getToken();
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/posts/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/posts/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

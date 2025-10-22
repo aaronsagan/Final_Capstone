@@ -51,13 +51,13 @@ class ReportsService {
   }
 
   async getMyReports(): Promise<PaginatedResponse<Report>> {
-    const res = await this.api.get<PaginatedResponse<Report>>('/api/me/reports');
+    const res = await this.api.get<PaginatedResponse<Report>>('/me/reports');
     return res.data;
   }
 
   async submitReport(form: FormData): Promise<{ message: string; report: Report }> {
     const res = await this.api.post<{ message: string; report: Report }>(
-      '/api/reports',
+      '/reports',
       form,
       { headers: { 'Content-Type': 'multipart/form-data' } }
     );

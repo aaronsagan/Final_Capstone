@@ -17,6 +17,9 @@ export interface Campaign {
   charity_id: number;
   title: string;
   description?: string;
+  problem?: string;
+  solution?: string;
+  outcome?: string;
   target_amount?: number;
   current_amount?: number;
   deadline_at?: string;
@@ -37,6 +40,9 @@ export interface Campaign {
 export interface CampaignFormData {
   title: string;
   description?: string;
+  problem?: string;
+  solution?: string;
+  outcome?: string;
   target_amount?: number;
   deadline_at?: string;
   status?: 'draft' | 'published' | 'closed' | 'archived';
@@ -88,7 +94,7 @@ class CampaignService {
    */
   async getCampaigns(charityId: number, page: number = 1): Promise<PaginatedResponse<Campaign>> {
     const response = await this.apiClient.get<PaginatedResponse<Campaign>>(
-      `/api/charities/${charityId}/campaigns`,
+      `/charities/${charityId}/campaigns`,
       { params: { page } }
     );
     return response.data;
@@ -98,7 +104,7 @@ class CampaignService {
    * Get a single campaign by ID
    */
   async getCampaign(campaignId: number): Promise<Campaign> {
-    const response = await this.apiClient.get<Campaign>(`/api/campaigns/${campaignId}`);
+    const response = await this.apiClient.get<Campaign>(`/campaigns/${campaignId}`);
     return response.data;
   }
 
@@ -110,6 +116,9 @@ class CampaignService {
     
     formData.append('title', data.title);
     if (data.description) formData.append('description', data.description);
+    if (data.problem) formData.append('problem', data.problem);
+    if (data.solution) formData.append('solution', data.solution);
+    if (data.outcome) formData.append('outcome', data.outcome);
     if (data.target_amount) formData.append('target_amount', data.target_amount.toString());
     if (data.deadline_at) formData.append('deadline_at', data.deadline_at);
     if (data.status) formData.append('status', data.status);
@@ -119,7 +128,7 @@ class CampaignService {
     if (data.cover_image) formData.append('cover_image', data.cover_image);
 
     const response = await this.apiClient.post<{ message: string; campaign: Campaign }>(
-      `/api/charities/${charityId}/campaigns`,
+      `/charities/${charityId}/campaigns`,
       formData,
       {
         headers: {
@@ -139,6 +148,9 @@ class CampaignService {
     
     if (data.title) formData.append('title', data.title);
     if (data.description !== undefined) formData.append('description', data.description);
+    if (data.problem !== undefined) formData.append('problem', data.problem);
+    if (data.solution !== undefined) formData.append('solution', data.solution);
+    if (data.outcome !== undefined) formData.append('outcome', data.outcome);
     if (data.target_amount !== undefined) formData.append('target_amount', data.target_amount.toString());
     if (data.deadline_at !== undefined) formData.append('deadline_at', data.deadline_at);
     if (data.status) formData.append('status', data.status);
@@ -151,7 +163,7 @@ class CampaignService {
     formData.append('_method', 'PUT');
 
     const response = await this.apiClient.post<Campaign>(
-      `/api/campaigns/${campaignId}`,
+      `/campaigns/${campaignId}`,
       formData,
       {
         headers: {
@@ -167,14 +179,14 @@ class CampaignService {
    * Delete a campaign
    */
   async deleteCampaign(campaignId: number): Promise<void> {
-    await this.apiClient.delete(`/api/campaigns/${campaignId}`);
+    await this.apiClient.delete(`/campaigns/${campaignId}`);
   }
 
   /**
    * Get campaign updates/posts
    */
   async getCampaignUpdates(campaignId: number): Promise<any[]> {
-    const response = await this.apiClient.get(`/api/campaigns/${campaignId}/updates`);
+    const response = await this.apiClient.get(`/campaigns/${campaignId}/updates`);
     return response.data.data || response.data;
   }
 
@@ -182,7 +194,7 @@ class CampaignService {
    * Get campaign supporters/donors
    */
   async getCampaignSupporters(campaignId: number): Promise<any[]> {
-    const response = await this.apiClient.get(`/api/campaigns/${campaignId}/supporters`);
+    const response = await this.apiClient.get(`/campaigns/${campaignId}/supporters`);
     return response.data.data || response.data;
   }
 
@@ -191,7 +203,7 @@ class CampaignService {
    */
   async getCampaignDonations(campaignId: number, page: number = 1): Promise<PaginatedResponse<any>> {
     const response = await this.apiClient.get(
-      `/api/campaigns/${campaignId}/donations`,
+      `/campaigns/${campaignId}/donations`,
       { params: { page } }
     );
     return response.data;
@@ -201,7 +213,7 @@ class CampaignService {
    * Get campaign fund usage/breakdown
    */
   async getCampaignFundUsage(campaignId: number): Promise<any[]> {
-    const response = await this.apiClient.get(`/api/campaigns/${campaignId}/fund-usage`);
+    const response = await this.apiClient.get(`/campaigns/${campaignId}/fund-usage`);
     return response.data.data || response.data;
   }
 
@@ -209,7 +221,7 @@ class CampaignService {
    * Get campaign statistics
    */
   async getCampaignStats(campaignId: number): Promise<any> {
-    const response = await this.apiClient.get(`/api/campaigns/${campaignId}/stats`);
+    const response = await this.apiClient.get(`/campaigns/${campaignId}/stats`);
     return response.data;
   }
 }

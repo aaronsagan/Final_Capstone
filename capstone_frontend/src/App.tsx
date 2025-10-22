@@ -53,12 +53,15 @@ import Leaderboard from "./pages/donor/Leaderboard";
 // Charity Components
 import { CharityLayout } from "./components/charity/CharityLayout";
 import CharityDashboard from "./pages/charity/CharityDashboard";
+import CharityEditProfile from "./pages/charity/EditProfile";
+import CharityProfilePage from "./pages/charity/CharityProfilePage";
 import OrganizationProfile from "./pages/charity/OrganizationProfile";
 import OrganizationProfileManagement from "./pages/charity/OrganizationProfileManagement";
 import CampaignManagement from "./pages/charity/CampaignManagement";
 import DonationManagement from "./pages/charity/DonationManagement";
 import FundTracking from "./pages/charity/FundTracking";
 import CharityUpdates from "./pages/charity/CharityUpdates";
+import Bin from "./pages/charity/Bin";
 import CharitySettings from "./pages/charity/Settings";
 import CharityHelpCenter from "./pages/charity/HelpCenter";
 import CharityVolunteers from "./pages/charity/Volunteers";
@@ -102,7 +105,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/charities" element={<PublicCharities />} />
             <Route path="/charities/:id" element={<CharityDetail />} />
-            <Route path="/charity/profile/:id" element={<CharityPublicProfile />} />
+            <Route path="/charity/:id" element={<CharityPublicProfile />} />
             <Route path="/about" element={<PublicAbout />} />
             <Route path="/campaigns/:id" element={<CampaignPage />} />
             
@@ -160,9 +163,12 @@ const App = () => (
               }
             >
               <Route index element={<CharityDashboard />} />
+              <Route path="profile" element={<CharityProfilePage />} />
+              <Route path="edit-profile" element={<CharityEditProfile />} />
               <Route path="organization" element={<OrganizationProfile />} />
               <Route path="organization/manage" element={<OrganizationProfileManagement />} />
               <Route path="updates" element={<CharityUpdates />} />
+              <Route path="bin" element={<Bin />} />
               <Route path="campaigns" element={<CampaignManagement />} />
               <Route path="donations" element={<DonationManagement />} />
               <Route path="fund-tracking" element={<FundTracking />} />

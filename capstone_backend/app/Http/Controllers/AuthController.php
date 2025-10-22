@@ -77,40 +77,65 @@ class AuthController extends Controller
         try {
             // Validate all fields - frontend sends different field names
             $validated = $r->validate([
-                // Representative details
-                'contact_person_name'=>'required|string|max:255',
-                'contact_email'=>'required|email|unique:users,email',
-                'contact_phone'=>'nullable|string',
+                // Primary Contact - New structured fields
+                'primary_first_name'=>'required|string|max:50',
+                'primary_middle_initial'=>'nullable|string|max:1',
+                'primary_last_name'=>'required|string|max:50',
+                'primary_position'=>'nullable|string|max:100',
+                'primary_email'=>'required|email|unique:users,email',
+                'primary_phone'=>'required|string|max:15',
                 'password'=>'required|string|min:6|confirmed',
                 
                 // Organization details
                 'organization_name'=>'required|string|max:255',
                 'registration_number'=>'nullable|string|max:255',
                 'tax_id'=>'nullable|string|max:255',
-                'mission_statement'=>'nullable|string',
-                'description'=>'nullable|string',
-                'website'=>'nullable|string', // Changed from 'url' to 'string'
-                'address'=>'nullable|string',
+                'mission_statement'=>'nullable|string|max:6000',
+                'vision_statement'=>'nullable|string|max:6000',
+                'description'=>'nullable|string|max:12000',
+                'website'=>'nullable|string',
+                
+                // Location fields
+                'street_address'=>'nullable|string',
+                'barangay'=>'nullable|string',
+                'city'=>'nullable|string',
+                'province'=>'nullable|string',
                 'region'=>'nullable|string',
-                'municipality'=>'nullable|string',
+                'full_address'=>'nullable|string',
+                
                 'nonprofit_category'=>'nullable|string',
                 'legal_trading_name'=>'nullable|string',
                 'accept_terms'=>'nullable',
                 'confirm_truthfulness'=>'nullable',
                 
-                // Files (optional) - removed validation temporarily
-                'logo'=>'nullable',
-                'cover_image'=>'nullable',
+                // Files (optional)
+                'logo'=>'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
+                'cover_image'=>'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
                 'documents'=>'nullable',
                 'doc_types'=>'nullable'
             ]);
             
+            // Log file upload attempts for debugging
+            Log::info('Charity registration file uploads', [
+                'has_logo' => $r->hasFile('logo'),
+                'has_cover' => $r->hasFile('cover_image'),
+                'logo_size' => $r->hasFile('logo') ? $r->file('logo')->getSize() : 0,
+                'cover_size' => $r->hasFile('cover_image') ? $r->file('cover_image')->getSize() : 0,
+            ]);
+            
             // Create user account with provided password
+            // Combine first, middle initial, and last name
+            $fullName = trim(implode(' ', array_filter([
+                $validated['primary_first_name'],
+                $validated['primary_middle_initial'] ?? null,
+                $validated['primary_last_name']
+            ])));
+            
             $user = User::create([
-                'name'=>$validated['contact_person_name'],
-                'email'=>$validated['contact_email'],
+                'name'=>$fullName,
+                'email'=>$validated['primary_email'],
                 'password'=>Hash::make($validated['password']),
-                'phone'=>$validated['contact_phone'] ?? null,
+                'phone'=>$validated['primary_phone'],
                 'role'=>'charity_admin',
                 'status'=>'active'
             ]);
@@ -119,12 +144,14 @@ class AuthController extends Controller
             $logoPath = null;
             if ($r->hasFile('logo')) {
                 $logoPath = $r->file('logo')->store('charity_logos', 'public');
+                Log::info('Logo uploaded successfully', ['path' => $logoPath]);
             }
             
             // Handle cover image upload
             $coverPath = null;
             if ($r->hasFile('cover_image')) {
                 $coverPath = $r->file('cover_image')->store('charity_covers', 'public');
+                Log::info('Cover image uploaded successfully', ['path' => $coverPath]);
             }
             
             // Create charity organization with all fields
@@ -135,13 +162,26 @@ class AuthController extends Controller
                 'reg_no'=>$validated['registration_number'] ?? null,
                 'tax_id'=>$validated['tax_id'] ?? null,
                 'mission'=>$validated['mission_statement'] ?? null,
-                'vision'=>$validated['description'] ?? null,
+                'vision'=>$validated['vision_statement'] ?? null,
+                'description'=>$validated['description'] ?? null,
                 'website'=>$validated['website'] ?? null,
-                'contact_email'=>$validated['contact_email'],
-                'contact_phone'=>$validated['contact_phone'] ?? null,
-                'address'=>$validated['address'] ?? null,
+                
+                // Primary contact fields
+                'primary_first_name'=>$validated['primary_first_name'],
+                'primary_middle_initial'=>$validated['primary_middle_initial'] ?? null,
+                'primary_last_name'=>$validated['primary_last_name'],
+                'primary_position'=>$validated['primary_position'] ?? null,
+                'primary_email'=>$validated['primary_email'],
+                'primary_phone'=>$validated['primary_phone'],
+                
+                // Location fields
+                'street_address'=>$validated['street_address'] ?? null,
+                'barangay'=>$validated['barangay'] ?? null,
+                'city'=>$validated['city'] ?? null,
+                'province'=>$validated['province'] ?? null,
                 'region'=>$validated['region'] ?? null,
-                'municipality'=>$validated['municipality'] ?? null,
+                'full_address'=>$validated['full_address'] ?? null,
+                
                 'category'=>$validated['nonprofit_category'] ?? null,
                 'logo_path'=>$logoPath,
                 'cover_image'=>$coverPath,
@@ -275,7 +315,8 @@ class AuthController extends Controller
             $validationRules['registration_number'] = 'sometimes|nullable|string|max:255';
             $validationRules['tax_id'] = 'sometimes|nullable|string|max:255';
             $validationRules['mission_statement'] = 'sometimes|nullable|string|max:1000';
-            $validationRules['description'] = 'sometimes|nullable|string|max:2000';
+            $validationRules['vision_statement'] = 'sometimes|nullable|string|max:1000';
+            $validationRules['description'] = 'sometimes|nullable|string|max:1000';
             $validationRules['website'] = 'sometimes|nullable|string|max:255';
             $validationRules['address'] = 'sometimes|nullable|string|max:500';
             $validationRules['region'] = 'sometimes|nullable|string|max:255';

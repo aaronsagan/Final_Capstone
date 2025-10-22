@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DonationsModal } from "./DonationsModal";
+import { buildStorageUrl } from "@/lib/api";
 
 export interface Campaign {
   id: number;
@@ -113,15 +114,16 @@ export const CampaignCard = ({
   };
 
   // Default banner image
+  const fallbackBanner = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='400'%3E%3Crect fill='%23f0f0f0' width='800' height='400'/%3E%3Ctext fill='%23999' font-family='sans-serif' font-size='40' dy='10.5' font-weight='bold' x='50%25' y='50%25' text-anchor='middle'%3ECampaign Banner%3C/text%3E%3C/svg%3E";
   const bannerUrl = campaign.bannerImage && !imageError
-    ? `${import.meta.env.VITE_API_URL}/storage/${campaign.bannerImage}`
-    : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='400'%3E%3Crect fill='%23f0f0f0' width='800' height='400'/%3E%3Ctext fill='%23999' font-family='sans-serif' font-size='40' dy='10.5' font-weight='bold' x='50%25' y='50%25' text-anchor='middle'%3ECampaign Banner%3C/text%3E%3C/svg%3E";
+    ? buildStorageUrl(campaign.bannerImage) || fallbackBanner
+    : fallbackBanner;
 
   return (
     <>
     <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 border-border/40 bg-card">
       {/* Banner Image Section */}
-      <div className="relative h-[200px] overflow-hidden bg-muted">
+      <div className="relative h-44 md:h-48 overflow-hidden bg-muted">
         <img
           src={bannerUrl}
           alt={campaign.title}

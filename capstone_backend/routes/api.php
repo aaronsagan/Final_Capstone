@@ -2,12 +2,18 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{
-  AuthController, CharityController, CampaignController, DonationController, FundUsageController, CharityPostController, TransparencyController, CharityFollowController, NotificationController, ReportController, CampaignCommentController, CategoryController, VolunteerController, LeaderboardController, DocumentExpiryController
+  AuthController, CharityController, CampaignController, DonationController, FundUsageController, CharityPostController, TransparencyController, CharityFollowController, NotificationController, ReportController, CampaignCommentController, CategoryController, VolunteerController, LeaderboardController, DocumentExpiryController, LocationController, DonorRegistrationController
 };
 use App\Http\Controllers\Admin\{VerificationController, AdminActionLogController};
 
 // Health
 Route::get('/ping', fn () => ['ok' => true, 'time' => now()->toDateTimeString()]);
+
+// Philippine Locations API (Public)
+Route::get('/locations', [LocationController::class,'index']);
+Route::get('/locations/regions', [LocationController::class,'getRegions']);
+Route::get('/locations/regions/{regionCode}/provinces', [LocationController::class,'getProvinces']);
+Route::get('/locations/regions/{regionCode}/provinces/{provinceCode}/cities', [LocationController::class,'getCities']);
 
 // Auth
 Route::post('/auth/register', [AuthController::class,'registerDonor']);
@@ -19,6 +25,11 @@ Route::put('/me', [AuthController::class,'updateProfile'])->middleware('auth:san
 Route::post('/me/change-password', [AuthController::class,'changePassword'])->middleware('auth:sanctum');
 Route::post('/me/deactivate', [AuthController::class,'deactivateAccount'])->middleware('auth:sanctum');
 Route::delete('/me', [AuthController::class,'deleteAccount'])->middleware('auth:sanctum');
+
+// Donor Registration (multi-step)
+Route::post('/donors/register/draft', [DonorRegistrationController::class,'saveDraft']);
+Route::post('/donors/register/verification', [DonorRegistrationController::class,'uploadVerification']);
+Route::post('/donors/register/submit', [DonorRegistrationController::class,'submit']);
 
 // Public directory
 Route::get('/charities', [CharityController::class,'index']);
@@ -52,6 +63,12 @@ Route::get('/charities/{charity}/leaderboard', [LeaderboardController::class,'to
 
 // Public charity documents (for viewing by donors and public)
 Route::get('/charities/{charity}/documents', [CharityController::class,'getDocuments']);
+
+// Document viewing and downloading (authenticated users)
+Route::middleware(['auth:sanctum'])->group(function(){
+  Route::get('/documents/{document}/view', [\App\Http\Controllers\DocumentController::class,'view']);
+  Route::get('/documents/{document}/download', [\App\Http\Controllers\DocumentController::class,'download']);
+});
 
 // Charity follow system (for donors)
 Route::middleware(['auth:sanctum','role:donor'])->group(function(){
@@ -101,9 +118,12 @@ Route::middleware(['auth:sanctum'])->group(function(){
   
   // Update interactions (available to any authenticated user)
   Route::post('/updates/{id}/like', [\App\Http\Controllers\UpdateController::class,'toggleLike']);
+  Route::post('/updates/{id}/share', [\App\Http\Controllers\UpdateController::class,'shareUpdate']);
   Route::get('/updates/{id}/comments', [\App\Http\Controllers\UpdateController::class,'getComments']);
   Route::post('/updates/{id}/comments', [\App\Http\Controllers\UpdateController::class,'addComment']);
+  Route::put('/comments/{id}', [\App\Http\Controllers\UpdateController::class,'updateComment']);
   Route::delete('/comments/{id}', [\App\Http\Controllers\UpdateController::class,'deleteComment']);
+  Route::post('/comments/{id}/like', [\App\Http\Controllers\UpdateController::class,'toggleCommentLike']);
 });
 
 // System admin (for recurring donations processing and security)
@@ -117,6 +137,7 @@ Route::middleware(['auth:sanctum','role:admin'])->group(function(){
 Route::middleware(['auth:sanctum','role:charity_admin'])->group(function(){
   Route::post('/charities', [CharityController::class,'store']);
   Route::put('/charities/{charity}', [CharityController::class,'update']);
+  Route::post('/charity/profile/update', [CharityController::class,'updateProfile']);
   Route::post('/charities/{charity}/documents', [CharityController::class,'uploadDocument']);
 
   Route::post('/charities/{charity}/channels', [CharityController::class,'storeChannel']);
@@ -159,6 +180,11 @@ Route::middleware(['auth:sanctum','role:charity_admin'])->group(function(){
   Route::delete('/updates/{id}', [\App\Http\Controllers\UpdateController::class,'destroy']);
   Route::post('/updates/{id}/pin', [\App\Http\Controllers\UpdateController::class,'togglePin']);
   Route::patch('/comments/{id}/hide', [\App\Http\Controllers\UpdateController::class,'hideComment']);
+  
+  // Bin/Trash Management
+  Route::get('/updates/trash', [\App\Http\Controllers\UpdateController::class,'getTrashed']);
+  Route::post('/updates/{id}/restore', [\App\Http\Controllers\UpdateController::class,'restore']);
+  Route::delete('/updates/{id}/force', [\App\Http\Controllers\UpdateController::class,'forceDelete']);
 });
 
 // System admin

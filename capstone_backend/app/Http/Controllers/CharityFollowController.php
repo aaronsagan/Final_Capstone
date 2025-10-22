@@ -19,12 +19,13 @@ class CharityFollowController extends Controller
 
         if ($existingFollow) {
             // Toggle follow status
+            $newStatus = !$existingFollow->is_following;
             $existingFollow->update([
-                'is_following' => !$existingFollow->is_following,
-                'followed_at' => $existingFollow->is_following ? null : now()
+                'is_following' => $newStatus,
+                'followed_at' => $newStatus ? now() : null
             ]);
 
-            $action = $existingFollow->is_following ? 'followed' : 'unfollowed';
+            $action = $newStatus ? 'followed' : 'unfollowed';
         } else {
             // Create new follow
             CharityFollow::create([

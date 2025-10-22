@@ -50,7 +50,7 @@ export default function DonorProfile() {
         updateFormData.append('profile_image', blob, 'profile.jpg');
       }
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/me`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/me`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -104,7 +104,7 @@ export default function DonorProfile() {
         return;
       }
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/me/change-password`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/me/change-password`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -37,6 +37,7 @@ import { charityService } from "@/services/charity";
 import { updatesService } from "@/services/updates";
 import { authService } from "@/services/auth";
 import { CampaignCard } from "@/components/charity/CampaignCard";
+import { getCharityLogoUrl, getStorageUrl } from "@/lib/storage";
 
 interface Update {
   id: number;
@@ -58,7 +59,18 @@ interface Comment {
   user_id: number;
   content: string;
   created_at: string;
-  user?: { id: number; name: string; role: string };
+  user?: {
+    id: number;
+    name: string;
+    role: string;
+    profile_image?: string;
+    charity?: {
+      id: number;
+      owner_id: number;
+      name: string;
+      logo_path?: string;
+    };
+  };
 }
 
 interface Campaign {
@@ -127,7 +139,7 @@ export default function CharityPublicProfile() {
     try {
       const token = authService.getToken();
       if (!token) return;
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/me`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
@@ -448,13 +460,27 @@ export default function CharityPublicProfile() {
                             {updateComments.map((comment) => (
                               <div key={comment.id} className="flex gap-3">
                                 <Avatar className="h-8 w-8 mt-0.5 ring-2 ring-background">
+                                  <AvatarImage
+                                    src={
+                                      comment.user?.role === "charity_admin" && comment.user?.charity?.logo_path
+                                        ? getCharityLogoUrl(comment.user.charity.logo_path) || undefined
+                                        : getStorageUrl(comment.user?.profile_image) || undefined
+                                    }
+                                    alt={comment.user?.name}
+                                  />
                                   <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                                    {comment.user?.name?.substring(0, 2).toUpperCase() || "U"}
+                                    {(comment.user?.role === "charity_admin" && comment.user?.charity?.name
+                                      ? comment.user.charity.name.substring(0, 2).toUpperCase()
+                                      : comment.user?.name?.substring(0, 2).toUpperCase()) || "U"}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
                                   <div className="bg-muted/60 dark:bg-muted/40 rounded-2xl px-4 py-2.5">
-                                    <p className="font-semibold text-xs text-foreground mb-0.5">{comment.user?.name || "User"}</p>
+                                    <p className="font-semibold text-xs text-foreground mb-0.5">
+                                      {comment.user?.role === "charity_admin" && comment.user?.charity?.name
+                                        ? comment.user.charity.name
+                                        : comment.user?.name || "User"}
+                                    </p>
                                     <p className="text-sm text-foreground/90 leading-relaxed">{comment.content}</p>
                                   </div>
                                   <div className="flex items-center gap-4 mt-1.5 px-4">

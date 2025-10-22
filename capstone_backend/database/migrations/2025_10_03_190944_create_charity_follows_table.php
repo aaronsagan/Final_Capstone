@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('donor_id');
             $table->unsignedBigInteger('charity_id');
             $table->boolean('is_following')->default(true);
-            $table->timestamp('followed_at')->useCurrent();
+            $table->timestamp('followed_at')->nullable();
             $table->timestamps();
 
             $table->foreign('donor_id')->references('id')->on('users')->onDelete('cascade');

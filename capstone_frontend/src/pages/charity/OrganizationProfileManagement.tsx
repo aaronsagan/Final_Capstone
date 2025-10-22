@@ -119,7 +119,7 @@ export default function OrganizationProfileManagement() {
 
   const handleViewPublicProfile = () => {
     if (user?.charity?.id) {
-      window.open(`/charity/profile/${user.charity.id}`, '_blank');
+      window.open(`/charity/${user.charity.id}`, '_blank');
     }
   };
 

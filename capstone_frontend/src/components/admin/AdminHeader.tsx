@@ -28,7 +28,7 @@ export const AdminHeader = () => {
       try {
         const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
         if (!token) return;
-        const res = await fetch(`${API_URL}/api/notifications/unread-count`, {
+        const res = await fetch(`${API_URL}/notifications/unread-count`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) return;

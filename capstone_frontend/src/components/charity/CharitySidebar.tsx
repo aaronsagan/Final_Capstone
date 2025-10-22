@@ -1,4 +1,4 @@
-import { LayoutDashboard, Building2, Megaphone, DollarSign, TrendingUp, User, Settings } from "lucide-react";
+import { LayoutDashboard, Building2, Megaphone, DollarSign, TrendingUp, User, Settings, Trash2 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
   Sidebar,
@@ -18,6 +18,7 @@ const navItems = [
   { title: "Campaign Management", url: "/charity/campaigns", icon: Megaphone },
   { title: "Donation Management", url: "/charity/donations", icon: DollarSign },
   { title: "Fund Tracking", url: "/charity/fund-tracking", icon: TrendingUp },
+  { title: "Bin", url: "/charity/bin", icon: Trash2 },
   { title: "Profile", url: "/charity/profile", icon: User },
   { title: "Settings", url: "/charity/settings", icon: Settings },
 ];

@@ -44,7 +44,7 @@ export default function PublicCharities() {
   const fetchCharities = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/charities`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/charities`);
       if (!response.ok) throw new Error('Failed to fetch charities');
       
       const data = await response.json();

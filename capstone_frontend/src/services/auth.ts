@@ -102,7 +102,7 @@ class AuthService {
    * Your backend should return a token and user object.
    */
   async login(credentials: LoginCredentials): Promise<User> {
-    const response = await this.apiClient.post<AuthResponse>('/api/auth/login', credentials);
+    const response = await this.apiClient.post<AuthResponse>('/auth/login', credentials);
     
     if (response.data.token) {
       this.setToken(response.data.token, credentials.remember_me);
@@ -115,8 +115,86 @@ class AuthService {
    * Get current authenticated user
    */
   async getCurrentUser(): Promise<User> {
-    const response = await this.apiClient.get<User>('/api/me');
+    const response = await this.apiClient.get<User>('/me');
     return response.data;
+  }
+
+  /**
+   * Save donor registration draft (step-by-step partial data)
+   */
+  async saveDonorDraft(payload: Record<string, any>): Promise<{ success: boolean }> {
+    try {
+      const response = await this.apiClient.post('/donors/register/draft', payload);
+      return response.data;
+    } catch (e: any) {
+      // Graceful no-op if endpoint not present
+      if (e?.response?.status === 404 || e?.code === 'ERR_NETWORK') {
+        console.warn('saveDonorDraft endpoint not available, skipping server draft save');
+        return { success: false };
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Upload donor identity verification files (ID and optional selfie)
+   */
+  async uploadDonorVerification(formData: FormData): Promise<{ success: boolean }> {
+    try {
+      const response = await this.apiClient.post('/donors/register/verification', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data;
+    } catch (e: any) {
+      if (e?.response?.status === 404 || e?.code === 'ERR_NETWORK') {
+        console.warn('uploadDonorVerification endpoint not available, will include files in final submission');
+        return { success: false };
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Final donor registration submission (all fields)
+   */
+  async submitDonorRegistration(formData: FormData): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = await this.apiClient.post('/donors/register/submit', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data;
+    } catch (e: any) {
+      const status = e?.response?.status;
+      // Fallback to legacy donor registration endpoint
+      if (status === 404 || status === 405 || status === 501) {
+        // Map new fields to legacy /auth/register API
+        const first = (formData.get('first_name') as string) || '';
+        const middle = (formData.get('middle_name') as string) || '';
+        const last = (formData.get('last_name') as string) || '';
+        const email = (formData.get('email') as string) || '';
+        const phone = (formData.get('phone') as string) || '';
+        const fullAddress = (formData.get('full_address') as string) || (formData.get('street_address') as string) || '';
+        const password = (formData.get('password') as string) || '';
+        const passwordConfirmation = (formData.get('password_confirmation') as string) || '';
+        const profileImage = formData.get('profile_image') as File | null;
+
+        const legacy = new FormData();
+        const name = [first, middle, last].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+        legacy.append('name', name || email.split('@')[0] || 'Donor');
+        legacy.append('email', email);
+        legacy.append('password', password);
+        legacy.append('password_confirmation', passwordConfirmation);
+        if (phone) legacy.append('phone', phone);
+        if (fullAddress) legacy.append('address', fullAddress);
+        if (profileImage) legacy.append('profile_image', profileImage);
+
+        const response = await this.apiClient.post('/auth/register', legacy, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return response.data;
+      }
+      throw e;
+    }
   }
 
   /**
@@ -124,7 +202,7 @@ class AuthService {
    */
   async logout(): Promise<void> {
     try {
-      await this.apiClient.post('/api/auth/logout');
+      await this.apiClient.post('/auth/logout');
     } catch (error) {
       console.error('Logout API call failed:', error);
     }
@@ -144,7 +222,7 @@ class AuthService {
     if (data.address) formData.append('address', data.address);
     if (data.profile_image) formData.append('profile_image', data.profile_image);
     
-    const response = await this.apiClient.post<AuthResponse>('/api/auth/register', formData, {
+    const response = await this.apiClient.post<AuthResponse>('/auth/register', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
     return response.data;
@@ -156,7 +234,7 @@ class AuthService {
   async registerCharity(data: any): Promise<{ success: boolean, message: string }> {
     // If data is already FormData, use it directly
     if (data instanceof FormData) {
-      const response = await this.apiClient.post('/api/auth/register-charity', data, {
+      const response = await this.apiClient.post('/auth/register-charity', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       return { success: true, message: response.data.message };
@@ -183,7 +261,7 @@ class AuthService {
     if (data.contact_phone) formData.append('contact_phone', data.contact_phone);
     if (data.address) formData.append('address', data.address);
     
-    const response = await this.apiClient.post('/api/auth/register-charity', formData, {
+    const response = await this.apiClient.post('/auth/register-charity', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
     
