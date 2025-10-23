@@ -9,7 +9,6 @@ import {
   Sparkles,
   Target,
   MessageCircle,
-  Eye,
   Loader2
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +20,8 @@ import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/context/AuthContext";
 import { donorService, type DonorStats, type CharityUpdate, type SuggestedCampaign } from "@/services/donor";
 import { toast } from "sonner";
+import { buildStorageUrl } from "@/lib/api";
+import { CampaignCard, type Campaign as CharityCampaign } from "@/components/charity/CampaignCard";
 
 export default function DonorDashboardHome() {
   const navigate = useNavigate();
@@ -104,6 +105,36 @@ export default function DonorDashboardHome() {
     if (count >= 5) return "⭐";
     return "🎯";
   };
+
+  // Map backend campaign status to CampaignCard status
+  const mapBackendStatus = (status?: string): "active" | "completed" | "draft" | "expired" => {
+    switch (status) {
+      case "published":
+        return "active";
+      case "closed":
+        return "completed";
+      case "archived":
+        return "expired";
+      case "draft":
+      default:
+        return "draft";
+    }
+  };
+
+  // Adapt SuggestedCampaign -> CampaignCard props
+  const toCampaignCardData = (c: SuggestedCampaign): CharityCampaign => ({
+    id: c.id,
+    title: c.title,
+    description: c.description || "Support this campaign",
+    goal: c.target_amount || 0,
+    amountRaised: c.current_amount || 0,
+    donorsCount: 0,
+    views: 0,
+    status: mapBackendStatus(c.status),
+    bannerImage: c.cover_image_path,
+    endDate: c.deadline_at || new Date().toISOString(),
+    createdAt: c.created_at || new Date().toISOString(),
+  });
 
   if (loading) {
     return (
@@ -318,13 +349,7 @@ export default function DonorDashboardHome() {
                   <CardHeader className="pb-3">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12 ring-2 ring-background">
-                        <AvatarImage
-                          src={
-                            update.charity?.logo_path
-                              ? `${import.meta.env.VITE_API_URL}/storage/${update.charity.logo_path}`
-                              : ""
-                          }
-                        />
+                        <AvatarImage src={buildStorageUrl(update.charity?.logo_path) || undefined} />
                         <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                           {update.charity?.name?.substring(0, 2).toUpperCase() || "CH"}
                         </AvatarFallback>
@@ -341,7 +366,7 @@ export default function DonorDashboardHome() {
                     {update.media_urls && update.media_urls.length > 0 && (
                       <div className="rounded-lg overflow-hidden">
                         <img
-                          src={`${import.meta.env.VITE_API_URL}/storage/${update.media_urls[0]}`}
+                          src={buildStorageUrl(update.media_urls[0]) || undefined}
                           alt="Update"
                           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                         />
@@ -404,106 +429,13 @@ export default function DonorDashboardHome() {
             </div>
           ) : suggestedCampaigns.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {suggestedCampaigns.map((campaign) => {
-                const progress = calculateProgress(campaign.current_amount, campaign.target_amount);
-                const daysLeft = campaign.deadline_at
-                  ? Math.max(
-                      0,
-                      Math.ceil(
-                        (new Date(campaign.deadline_at).getTime() - new Date().getTime()) /
-                          (1000 * 60 * 60 * 24)
-                      )
-                    )
-                  : null;
-
-                return (
-                  <Card key={campaign.id} className="group overflow-hidden hover:shadow-xl transition-all duration-300">
-                    {/* Campaign Image */}
-                    <div className="relative h-48 overflow-hidden bg-muted">
-                      <img
-                        src={
-                          campaign.cover_image_path
-                            ? `${import.meta.env.VITE_API_URL}/storage/${campaign.cover_image_path}`
-                            : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f0f0f0' width='400' height='300'/%3E%3Ctext fill='%23999' font-family='sans-serif' font-size='24' dy='10.5' font-weight='bold' x='50%25' y='50%25' text-anchor='middle'%3ECampaign%3C/text%3E%3C/svg%3E"
-                        }
-                        alt={campaign.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                      
-                      {/* Charity Logo */}
-                      <div className="absolute bottom-3 left-3">
-                        <Avatar className="h-10 w-10 ring-2 ring-white">
-                          <AvatarImage
-                            src={
-                              campaign.charity?.logo_path
-                                ? `${import.meta.env.VITE_API_URL}/storage/${campaign.charity.logo_path}`
-                                : ""
-                            }
-                          />
-                          <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
-                            {campaign.charity?.name?.substring(0, 2).toUpperCase() || "CH"}
-                          </AvatarFallback>
-                        </Avatar>
-                      </div>
-                    </div>
-
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg line-clamp-2 group-hover:text-primary transition-colors">
-                        {campaign.title}
-                      </CardTitle>
-                      <CardDescription className="line-clamp-2">
-                        {campaign.description || "Support this campaign"}
-                      </CardDescription>
-                    </CardHeader>
-
-                    <CardContent className="space-y-4">
-                      {/* Progress */}
-                      {campaign.target_amount && (
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Raised</span>
-                            <span className="font-bold text-primary">{progress}%</span>
-                          </div>
-                          <Progress value={progress} className="h-2" />
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>₱{(campaign.current_amount || 0).toLocaleString()}</span>
-                            <span>of ₱{campaign.target_amount.toLocaleString()}</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Stats */}
-                      <div className="flex items-center justify-between text-sm">
-                        {daysLeft !== null && (
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <Calendar className="h-4 w-4" />
-                            <span>{daysLeft > 0 ? `${daysLeft} days left` : 'Ended'}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex gap-2 pt-2">
-                        <Button
-                          className="flex-1"
-                          onClick={() => navigate(`/campaigns/${campaign.id}`)}
-                        >
-                          <Heart className="mr-2 h-4 w-4" />
-                          Donate Now
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => navigate(`/campaigns/${campaign.id}`)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+              {suggestedCampaigns.map((c) => (
+                <CampaignCard
+                  key={c.id}
+                  campaign={toCampaignCardData(c)}
+                  viewMode="donor"
+                />
+              ))}
             </div>
           ) : (
             <Card className="p-12 text-center">

@@ -121,7 +121,7 @@ export const CampaignCard = ({
 
   return (
     <>
-    <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 border-border/40 bg-card">
+    <Card className="group h-full flex flex-col overflow-hidden hover:shadow-xl transition-all duration-300 border-border/40 bg-card">
       {/* Banner Image Section */}
       <div className="relative h-44 md:h-48 overflow-hidden bg-muted">
         <img
@@ -200,7 +200,7 @@ export const CampaignCard = ({
       </div>
 
       {/* Content Section */}
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-3 min-h-[120px]">
         <h3 className="text-xl font-bold text-foreground line-clamp-2 mb-2 group-hover:text-primary transition-colors">
           {campaign.title}
         </h3>
@@ -209,7 +209,7 @@ export const CampaignCard = ({
         </p>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 flex flex-col flex-1">
         {/* Progress Bar */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
@@ -269,7 +269,7 @@ export const CampaignCard = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-2 pt-2 mt-auto">
           {viewMode === "admin" ? (
             <>
               <Button
