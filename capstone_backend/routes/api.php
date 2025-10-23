@@ -95,6 +95,7 @@ Route::get('/campaigns/{campaign}/comments', [CampaignCommentController::class,'
 
 // Public donation channels
 Route::get('/campaigns/{campaign}/donation-channels', [\App\Http\Controllers\DonationChannelController::class,'index']);
+Route::get('/charities/{charity}/donation-channels', [\App\Http\Controllers\DonationChannelController::class,'getCharityChannelsPublic']);
 
 // Public leaderboards
 Route::get('/leaderboard/donors', [LeaderboardController::class,'topDonors']);
@@ -140,6 +141,8 @@ Route::middleware(['auth:sanctum','role:charity_admin'])->group(function(){
 Route::middleware(['auth:sanctum','role:donor'])->group(function(){
   Route::post('/donations', [DonationController::class,'store']);
   Route::post('/donations/{donation}/proof', [DonationController::class,'uploadProof']);
+  Route::post('/campaigns/{campaign}/donate', [DonationController::class,'submitManualDonation']);
+  Route::post('/charities/{charity}/donate', [DonationController::class,'submitCharityDonation']);
   Route::get('/me/donations', [DonationController::class,'myDonations']);
   Route::get('/donations/{donation}/receipt', [DonationController::class,'downloadReceipt']);
   

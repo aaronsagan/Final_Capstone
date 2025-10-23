@@ -1013,14 +1013,16 @@ export default function CampaignPage() {
 
                     {/* CTA Buttons */}
                     <div className="space-y-3">
-                      <Button
-                        size="lg"
-                        className="w-full bg-primary hover:bg-primary/90 text-lg h-12"
-                        onClick={() => navigate(`/campaigns/${campaign.id}/donate`)}
-                      >
-                        <Heart className="mr-2 h-5 w-5" />
-                        Donate Now
-                      </Button>
+                      {!isCharityOwner && (
+                        <Button
+                          size="lg"
+                          className="w-full bg-primary hover:bg-primary/90 text-lg h-12"
+                          onClick={() => navigate(`/donor/campaigns/${campaign.id}/donate`)}
+                        >
+                          <Heart className="mr-2 h-5 w-5" />
+                          Donate Now
+                        </Button>
+                      )}
 
                       {/* Share Buttons */}
                       <div className="flex gap-2">

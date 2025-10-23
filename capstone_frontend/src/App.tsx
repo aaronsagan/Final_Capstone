@@ -37,6 +37,7 @@ import { DonorLayout } from "./components/donor/DonorLayout";
 import DonorDashboard from "./pages/donor/DonorDashboard";
 import NewsFeed from "./pages/donor/NewsFeed";
 import MakeDonation from "./pages/donor/MakeDonation";
+import DonateToCampaign from "./pages/donor/DonateToCampaign";
 import DonationHistory from "./pages/donor/DonationHistory";
 import FundTransparency from "./pages/donor/FundTransparency";
 import DonorProfile from "./pages/donor/DonorProfile";
@@ -139,6 +140,7 @@ const App = () => (
               <Route path="news-feed" element={<NewsFeed />} />
               <Route path="donate" element={<MakeDonation />} />
               <Route path="donate/:charityId" element={<MakeDonation />} />
+              <Route path="campaigns/:campaignId/donate" element={<DonateToCampaign />} />
               <Route path="history" element={<DonationHistory />} />
               <Route path="transparency" element={<FundTransparency />} />
               <Route path="profile" element={<DonorProfilePage />} />

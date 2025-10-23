@@ -294,7 +294,7 @@ export const CampaignCard = ({
               <Button
                 variant="default"
                 className="flex-1 h-10 bg-primary hover:bg-primary/90"
-                onClick={() => navigate(`/campaigns/${campaign.id}/donate`)}
+                onClick={() => navigate(`/donor/campaigns/${campaign.id}/donate`)}
               >
                 <Heart className="mr-2 h-4 w-4" />
                 Donate Now

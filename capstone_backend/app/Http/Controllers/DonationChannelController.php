@@ -20,6 +20,18 @@ class DonationChannelController extends Controller
         return response()->json($channels);
     }
 
+    /**
+     * Get all donation channels for a specific charity (PUBLIC - for donors donating directly)
+     */
+    public function getCharityChannelsPublic($charityId)
+    {
+        $channels = DonationChannel::where('charity_id', $charityId)
+            ->where('is_active', true)
+            ->get();
+
+        return response()->json($channels);
+    }
+
     public function getCharityChannels(Request $request)
     {
         $user = $request->user();

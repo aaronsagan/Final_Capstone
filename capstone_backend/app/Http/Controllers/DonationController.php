@@ -64,6 +64,100 @@ class DonationController extends Controller
         return $donation->fresh();
     }
 
+    // Submit manual donation with proof (campaign-specific)
+    public function submitManualDonation(Request $r, Campaign $campaign){
+        $data = $r->validate([
+            'donor_name'=>'required|string|max:255',
+            'donor_email'=>'nullable|email|max:255',
+            'amount'=>'required|numeric|min:1',
+            'channel_used'=>'required|string|max:255',
+            'reference_number'=>'required|string|max:255',
+            'proof_image'=>'required|image|mimes:jpg,jpeg,png|max:2048',
+            'message'=>'nullable|string|max:1000',
+            'is_anonymous'=>'boolean',
+        ]);
+
+        // Store proof image
+        $proofPath = $r->file('proof_image')->store('proofs','public');
+
+        // Get donor ID if authenticated
+        $donorId = $r->user() ? $r->user()->id : null;
+        if($data['is_anonymous'] ?? false) {
+            $donorId = null;
+        }
+
+        // Create donation record
+        $donation = Donation::create([
+            'donor_id' => $donorId,
+            'donor_name' => $data['donor_name'],
+            'donor_email' => $data['donor_email'] ?? null,
+            'charity_id' => $campaign->charity_id,
+            'campaign_id' => $campaign->id,
+            'amount' => $data['amount'],
+            'channel_used' => $data['channel_used'],
+            'reference_number' => $data['reference_number'],
+            'proof_path' => $proofPath,
+            'proof_type' => 'image',
+            'message' => $data['message'] ?? null,
+            'is_anonymous' => $data['is_anonymous'] ?? false,
+            'purpose' => 'project',
+            'status' => 'pending',
+            'donated_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Thank you! Your proof of donation has been submitted for review.',
+            'donation' => $donation->load(['charity', 'campaign'])
+        ], 201);
+    }
+
+    // Submit manual donation directly to charity (not campaign-specific)
+    public function submitCharityDonation(Request $r, Charity $charity){
+        $data = $r->validate([
+            'donor_name'=>'required|string|max:255',
+            'donor_email'=>'nullable|email|max:255',
+            'amount'=>'required|numeric|min:1',
+            'channel_used'=>'required|string|max:255',
+            'reference_number'=>'required|string|max:255',
+            'proof_image'=>'required|image|mimes:jpg,jpeg,png|max:2048',
+            'message'=>'nullable|string|max:1000',
+            'is_anonymous'=>'boolean',
+        ]);
+
+        // Store proof image
+        $proofPath = $r->file('proof_image')->store('proofs','public');
+
+        // Get donor ID if authenticated
+        $donorId = $r->user() ? $r->user()->id : null;
+        if($data['is_anonymous'] ?? false) {
+            $donorId = null;
+        }
+
+        // Create donation record for direct charity donation
+        $donation = Donation::create([
+            'donor_id' => $donorId,
+            'donor_name' => $data['donor_name'],
+            'donor_email' => $data['donor_email'] ?? null,
+            'charity_id' => $charity->id,
+            'campaign_id' => null, // Direct to charity, not a campaign
+            'amount' => $data['amount'],
+            'channel_used' => $data['channel_used'],
+            'reference_number' => $data['reference_number'],
+            'proof_path' => $proofPath,
+            'proof_type' => 'image',
+            'message' => $data['message'] ?? null,
+            'is_anonymous' => $data['is_anonymous'] ?? false,
+            'purpose' => 'general', // Direct charity donations are general
+            'status' => 'pending',
+            'donated_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Thank you! Your donation has been submitted for review.',
+            'donation' => $donation->load('charity')
+        ], 201);
+    }
+
     // Charity inbox (see donations for their org)
     public function charityInbox(Request $r, Charity $charity){
         abort_unless($charity->owner_id === $r->user()->id, 403);
