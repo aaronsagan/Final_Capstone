@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,9 +23,10 @@ import {
   closeCampaign,
 } from "@/services/apiCharity";
 import type { CampaignDetail } from "@/types/charity";
-import { Edit, Pause, Play, StopCircle, Download, AlertCircle } from "lucide-react";
+import { Edit, Pause, Play, StopCircle, Download, AlertCircle, FileText } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { toast } from "@/hooks/use-toast";
+import CampaignUpdatesTab from "./CampaignUpdatesTab";
 
 /**
  * Campaign Detail Page
@@ -198,9 +200,22 @@ const CampaignDetailPage = () => {
         </CardContent>
       </Card>
 
-      <div className="grid gap-lg lg:grid-cols-2">
-        {/* Description & Media */}
-        <Card>
+      {/* Tabs Navigation */}
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="updates">
+            <FileText className="h-4 w-4 mr-2" />
+            Updates
+          </TabsTrigger>
+          <TabsTrigger value="donors">Donors</TabsTrigger>
+        </TabsList>
+
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="mt-6">
+          <div className="grid gap-lg lg:grid-cols-2">
+            {/* Description & Media */}
+            <Card>
           <CardHeader>
             <CardTitle>Campaign Details</CardTitle>
           </CardHeader>
@@ -272,10 +287,17 @@ const CampaignDetailPage = () => {
             )}
           </CardContent>
         </Card>
-      </div>
+          </div>
+        </TabsContent>
 
-      {/* Recent Donations */}
-      <Card>
+        {/* Updates Tab */}
+        <TabsContent value="updates" className="mt-6">
+          <CampaignUpdatesTab campaignId={parseInt(id || "0")} />
+        </TabsContent>
+
+        {/* Donors Tab */}
+        <TabsContent value="donors" className="mt-6">
+          <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Recent Donations</CardTitle>
@@ -323,7 +345,9 @@ const CampaignDetailPage = () => {
             )}
           </div>
         </CardContent>
-      </Card>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Action Confirmation Dialog */}
       <AlertDialog open={actionDialogOpen} onOpenChange={setActionDialogOpen}>

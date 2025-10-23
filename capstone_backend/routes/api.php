@@ -2,8 +2,11 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{
-  AuthController, CharityController, CampaignController, DonationController, FundUsageController, CharityPostController, TransparencyController, CharityFollowController, NotificationController, ReportController, CampaignCommentController, CategoryController, VolunteerController, LeaderboardController, DocumentExpiryController, LocationController, DonorRegistrationController
+  AuthController, CharityController, CampaignController, CampaignUpdateController, DonationController, FundUsageController, CharityPostController, TransparencyController, CharityFollowController, NotificationController, ReportController, CampaignCommentController, CategoryController, VolunteerController, LeaderboardController, DocumentExpiryController, LocationController, DonorRegistrationController
 };
+use App\Models\Charity;
+use App\Models\Campaign;
+use App\Models\CampaignUpdate;
 use App\Http\Controllers\Admin\{VerificationController, AdminActionLogController};
 
 // Health
@@ -21,6 +24,25 @@ Route::get('/test-campaign/{id}', function ($id) {
         'expected_outcome' => $campaign->expected_outcome,
         'channels' => $campaign->donationChannels->map(fn($ch) => ['id' => $ch->id, 'type' => $ch->type, 'label' => $ch->label]),
         'channels_count' => $campaign->donationChannels->count(),
+    ], 200, [], JSON_PRETTY_PRINT);
+});
+
+// TEST ROUTE - Check campaign updates
+Route::get('/test-updates/{campaignId}', function ($campaignId) {
+    $campaign = Campaign::find($campaignId);
+    $updates = CampaignUpdate::where('campaign_id', $campaignId)->orderBy('created_at', 'desc')->get();
+    return response()->json([
+        'campaign_id' => $campaignId,
+        'campaign_title' => $campaign ? $campaign->title : 'Not Found',
+        'updates_count' => $updates->count(),
+        'updates' => $updates->map(fn($u) => [
+            'id' => $u->id,
+            'title' => $u->title,
+            'content' => substr($u->content, 0, 80) . '...',
+            'is_milestone' => $u->is_milestone,
+            'image_path' => $u->image_path,
+            'created_at' => $u->created_at->toDateTimeString(),
+        ]),
     ], 200, [], JSON_PRETTY_PRINT);
 });
 
@@ -53,7 +75,9 @@ Route::get('/charities/{charity}/channels', [CharityController::class,'channels'
 Route::get('/charities/{charity}/campaigns', [CampaignController::class,'index']);
 Route::get('/campaigns/{campaign}', [CampaignController::class,'show']);
 Route::get('/campaigns/{campaign}/fund-usage', [FundUsageController::class,'publicIndex']);
-Route::get('/campaigns/{campaign}/updates', [CampaignController::class,'getUpdates']);
+Route::get('/campaigns/{campaign}/updates', [CampaignUpdateController::class,'index']);
+Route::get('/campaigns/{campaign}/updates/milestones', [CampaignUpdateController::class,'getMilestones']);
+Route::get('/campaigns/{campaign}/updates/stats', [CampaignUpdateController::class,'getStats']);
 Route::get('/campaigns/{campaign}/supporters', [CampaignController::class,'getSupporters']);
 Route::get('/campaigns/{campaign}/donations', [CampaignController::class,'getDonations']);
 Route::get('/campaigns/{campaign}/stats', [CampaignController::class,'getStats']);
@@ -165,6 +189,11 @@ Route::middleware(['auth:sanctum','role:charity_admin'])->group(function(){
   Route::put('/campaigns/{campaign}', [CampaignController::class,'update']);
   Route::delete('/campaigns/{campaign}', [CampaignController::class,'destroy']);
 
+  // Campaign Updates Management (Charity Admin Only)
+  Route::post('/campaigns/{campaign}/updates', [CampaignUpdateController::class,'store']);
+  Route::put('/campaign-updates/{id}', [CampaignUpdateController::class,'update']);
+  Route::delete('/campaign-updates/{id}', [CampaignUpdateController::class,'destroy']);
+
   // Donation Channels Management
   Route::get('/charity/donation-channels', [\App\Http\Controllers\DonationChannelController::class,'getCharityChannels']);
   Route::post('/charity/donation-channels', [\App\Http\Controllers\DonationChannelController::class,'store']);
@@ -177,7 +206,11 @@ Route::middleware(['auth:sanctum','role:charity_admin'])->group(function(){
   Route::patch('/donations/{donation}/confirm', [DonationController::class,'confirm']);
   Route::patch('/donations/{donation}/status', [DonationController::class,'updateStatus']);
 
+  // Fund Usage Management (CRUD)
+  Route::get('/campaigns/{campaignId}/fund-usage', [FundUsageController::class,'index']);
   Route::post('/campaigns/{campaign}/fund-usage', [FundUsageController::class,'store']);
+  Route::put('/fund-usage/{id}', [FundUsageController::class,'update']);
+  Route::delete('/fund-usage/{id}', [FundUsageController::class,'destroy']);
   
   // Charity posts management
   Route::get('/my-posts', [CharityPostController::class,'getMyPosts']);

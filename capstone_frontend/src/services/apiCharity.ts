@@ -49,6 +49,30 @@ export async function listCampaigns(params: ListCampaignsParams = {}): Promise<P
   };
 }
 
+export async function getCampaign(campaignId: string): Promise<any> {
+  // Use the campaign service to get campaign details
+  const response = await campaignService.getCampaign(parseInt(campaignId));
+  return response;
+}
+
+export async function pauseCampaign(campaignId: string): Promise<void> {
+  // Pause campaign - update status
+  console.log(`Pausing campaign ${campaignId}`);
+  // TODO: Implement actual API call when backend is ready
+}
+
+export async function resumeCampaign(campaignId: string): Promise<void> {
+  // Resume campaign - update status
+  console.log(`Resuming campaign ${campaignId}`);
+  // TODO: Implement actual API call when backend is ready
+}
+
+export async function closeCampaign(campaignId: string): Promise<void> {
+  // Close campaign - update status
+  console.log(`Closing campaign ${campaignId}`);
+  // TODO: Implement actual API call when backend is ready
+}
+
 export async function deleteCampaign(campaignId: string): Promise<void> {
   // For now, this is a mock implementation
   // In a real implementation, this would call the delete campaign API

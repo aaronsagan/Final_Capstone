@@ -15,6 +15,22 @@ export interface Campaign {
   updatedAt: string;
 }
 
+// Campaign detail view with extended information
+export interface CampaignDetail extends Campaign {
+  mediaGallery?: string[];
+  donorBreakdown?: {
+    name: string;
+    value: number;
+  }[];
+  recentDonations?: {
+    id: string;
+    donorName: string;
+    amount: number;
+    status: string;
+    submittedAt: string;
+  }[];
+}
+
 // Fund usage types
 export interface FundUsageEntry {
   id: string;

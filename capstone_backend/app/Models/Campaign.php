@@ -80,4 +80,9 @@ class Campaign extends Model
         return $this->belongsToMany(DonationChannel::class, 'campaign_donation_channel')
             ->withTimestamps();
     }
+
+    public function campaignUpdates()
+    {
+        return $this->hasMany(CampaignUpdate::class);
+    }
 }

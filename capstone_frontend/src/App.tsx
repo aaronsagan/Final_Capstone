@@ -58,6 +58,7 @@ import CharityProfilePage from "./pages/charity/CharityProfilePage";
 import OrganizationProfile from "./pages/charity/OrganizationProfile";
 import OrganizationProfileManagement from "./pages/charity/OrganizationProfileManagement";
 import CampaignManagement from "./pages/charity/CampaignManagement";
+import CampaignDetailPage from "./pages/charity/CampaignDetailPage";
 import DonationManagement from "./pages/charity/DonationManagement";
 import FundTracking from "./pages/charity/FundTracking";
 import CharityUpdates from "./pages/charity/CharityUpdates";
@@ -170,6 +171,7 @@ const App = () => (
               <Route path="updates" element={<CharityUpdates />} />
               <Route path="bin" element={<Bin />} />
               <Route path="campaigns" element={<CampaignManagement />} />
+              <Route path="campaigns/:id" element={<CampaignDetailPage />} />
               <Route path="donations" element={<DonationManagement />} />
               <Route path="fund-tracking" element={<FundTracking />} />
               <Route path="volunteers" element={<CharityVolunteers />} />

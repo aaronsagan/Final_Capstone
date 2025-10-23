@@ -393,6 +393,8 @@ export default function CharityProfilePage() {
       }
     : null;
 
+  const isOwner = (user?.role === 'charity_admin') && (!!displayCharity?.id && user?.charity?.id === displayCharity.id);
+
   return (
     <div className="min-h-screen bg-background pb-20 lg:pb-8">
       {/* Profile Header */}
@@ -445,6 +447,8 @@ export default function CharityProfilePage() {
                 totalLikes={recentUpdates.reduce((sum, u) => sum + (u.likes_count || 0), 0)}
                 totalComments={recentUpdates.reduce((sum, u) => sum + (u.comments_count || 0), 0)}
                 totalPosts={stats?.total_updates || stats?.updates_count || recentUpdates.length || 0}
+                recentUpdates={recentUpdates}
+                canCreate={isOwner}
               />
             ) : activeTab === 'campaigns' ? (
               <CampaignsSidebar

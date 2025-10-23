@@ -14,6 +14,7 @@ class UpdateController extends Controller
 {
     /**
      * Get all updates for the authenticated charity
+     * IMPORTANT: Only returns updates created by the logged-in charity
      */
     public function index(Request $request)
     {
@@ -26,7 +27,9 @@ class UpdateController extends Controller
 
             $charityId = $user->charity->id;
 
+            // Filter: Only show updates authored by this charity
             $updates = Update::where('charity_id', $charityId)
+                ->whereNull('parent_id') // Exclude threaded replies
                 ->with(['charity'])
                 ->orderBy('is_pinned', 'desc')
                 ->orderBy('created_at', 'desc')

@@ -216,6 +216,7 @@ export function ProfileTabs({
   const [editContent, setEditContent] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [updateToDelete, setUpdateToDelete] = useState<number | null>(null);
+  const [highlightedUpdateId, setHighlightedUpdateId] = useState<number | null>(null);
 
   // About Tab Edit Modals
   const [isMissionModalOpen, setIsMissionModalOpen] = useState(false);
@@ -306,6 +307,23 @@ export function ProfileTabs({
   useEffect(() => {
     setUpdates(recentUpdates || []);
   }, [recentUpdates]);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      const id = e?.detail?.id as number | undefined;
+      if (!id) return;
+      const el = document.getElementById(`update-${id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setHighlightedUpdateId(id);
+        window.setTimeout(() => {
+          setHighlightedUpdateId((prev) => (prev === id ? null : prev));
+        }, 2000);
+      }
+    };
+    window.addEventListener('scroll-to-update', handler as EventListener);
+    return () => window.removeEventListener('scroll-to-update', handler as EventListener);
+  }, []);
 
   const mapCampaignStatus = (status: string): DashboardCampaign["status"] => {
     const s = (status || '').toLowerCase();
@@ -724,8 +742,9 @@ export function ProfileTabs({
               const media = update.media_urls || [];
               return (
                 <Card 
-                  key={update.id} 
-                  className="bg-card border-border/40 hover:shadow-lg transition-all duration-200 hover:border-border/60"
+                  key={update.id}
+                  id={`update-${update.id}`}
+                  className={`bg-card border-border/40 hover:shadow-lg transition-all duration-200 hover:border-border/60 ${highlightedUpdateId === update.id ? 'ring-2 ring-primary' : ''}`}
                 >
                   <CardHeader className="pb-0">
                     <div className="flex items-start justify-between">
