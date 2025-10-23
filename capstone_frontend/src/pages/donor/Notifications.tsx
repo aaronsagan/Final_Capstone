@@ -30,7 +30,7 @@ export default function Notifications() {
       setLoading(true);
       const token = authService.getToken();
       if (!token) return;
-      const res = await fetch(`${API_URL}/api/me/notifications`, {
+      const res = await fetch(`${API_URL}/me/notifications`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
       });
       if (!res.ok) throw new Error('Failed to load notifications');
@@ -48,7 +48,7 @@ export default function Notifications() {
     try {
       const token = authService.getToken();
       if (!token) return;
-      const res = await fetch(`${API_URL}/api/notifications/${id}/read`, {
+      const res = await fetch(`${API_URL}/notifications/${id}/read`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -63,7 +63,7 @@ export default function Notifications() {
     try {
       const token = authService.getToken();
       if (!token) return;
-      const res = await fetch(`${API_URL}/api/notifications/mark-all-read`, {
+      const res = await fetch(`${API_URL}/notifications/mark-all-read`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -79,7 +79,7 @@ export default function Notifications() {
     try {
       const token = authService.getToken();
       if (!token) return;
-      const res = await fetch(`${API_URL}/api/notifications/${id}`, {
+      const res = await fetch(`${API_URL}/notifications/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });

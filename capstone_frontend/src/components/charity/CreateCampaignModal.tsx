@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,8 +19,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import { campaignService } from "@/services/campaigns";
+import { buildApiUrl, getAuthToken } from "@/lib/api";
+import { Wallet } from "lucide-react";
 
 interface CreateCampaignModalProps {
   open: boolean;
@@ -45,6 +48,9 @@ export function CreateCampaignModal({ open, onOpenChange, charityId, onSuccess }
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [availableChannels, setAvailableChannels] = useState<any[]>([]);
+  const [selectedChannelIds, setSelectedChannelIds] = useState<number[]>([]);
+  const [loadingChannels, setLoadingChannels] = useState(false);
 
   const reset = () => {
     setForm({
@@ -61,6 +67,45 @@ export function CreateCampaignModal({ open, onOpenChange, charityId, onSuccess }
       image: null,
     });
     setErrors({});
+    setSelectedChannelIds([]);
+  };
+
+  // Fetch charity's donation channels when modal opens
+  useEffect(() => {
+    if (open) {
+      fetchChannels();
+    }
+  }, [open]);
+
+  const fetchChannels = async () => {
+    try {
+      setLoadingChannels(true);
+      const token = getAuthToken();
+      if (!token) return;
+
+      const response = await fetch(buildApiUrl("/charity/donation-channels"), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableChannels(data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching donation channels:", error);
+    } finally {
+      setLoadingChannels(false);
+    }
+  };
+
+  const toggleChannel = (channelId: number) => {
+    setSelectedChannelIds((prev) =>
+      prev.includes(channelId)
+        ? prev.filter((id) => id !== channelId)
+        : [...prev, channelId]
+    );
   };
 
   const validate = () => {
@@ -87,7 +132,9 @@ export function CreateCampaignModal({ open, onOpenChange, charityId, onSuccess }
         return;
       }
       setSubmitting(true);
-      await campaignService.createCampaign(charityId, {
+      
+      // Create campaign
+      const response = await campaignService.createCampaign(charityId, {
         title: form.title,
         description: form.description,
         target_amount: Number(form.targetAmount),
@@ -100,6 +147,27 @@ export function CreateCampaignModal({ open, onOpenChange, charityId, onSuccess }
         solution: form.solution,
         outcome: form.outcome || undefined,
       } as any);
+
+      // Attach selected donation channels if any
+      if (selectedChannelIds.length > 0 && response?.data?.id) {
+        const token = getAuthToken();
+        if (token) {
+          try {
+            await fetch(buildApiUrl(`/campaigns/${response.data.id}/donation-channels/attach`), {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ channel_ids: selectedChannelIds }),
+            });
+          } catch (attachError) {
+            console.error("Error attaching channels:", attachError);
+            // Don't fail the whole operation if channel attachment fails
+          }
+        }
+      }
+
       toast({ title: "Success", description: "Campaign created successfully" });
       onOpenChange(false);
       reset();
@@ -208,6 +276,79 @@ export function CreateCampaignModal({ open, onOpenChange, charityId, onSuccess }
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <Separator />
+
+          {/* Donation Channels Selection */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Wallet className="h-5 w-5 text-primary" />
+              <Label className="text-base font-semibold">Select Donation Channels</Label>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Choose which payment methods donors can use for this campaign
+            </p>
+
+            {loadingChannels ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              </div>
+            ) : availableChannels.length === 0 ? (
+              <div className="border-2 border-dashed rounded-lg p-6 text-center">
+                <Wallet className="h-10 w-10 text-muted-foreground/50 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground mb-3">
+                  No donation channels found. Add channels first to select them for campaigns.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Open add donation channel modal
+                    window.dispatchEvent(new CustomEvent("open-add-donation-channel"));
+                  }}
+                >
+                  <Wallet className="h-4 w-4 mr-2" />
+                  Add Donation Channel
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3 max-h-[200px] overflow-y-auto border rounded-lg p-3">
+                {availableChannels.map((channel) => (
+                  <label
+                    key={channel.id}
+                    className={`flex items-start gap-3 p-3 rounded-md border-2 cursor-pointer transition-all ${
+                      selectedChannelIds.includes(channel.id)
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50 hover:bg-accent"
+                    }`}
+                  >
+                    <Checkbox
+                      checked={selectedChannelIds.includes(channel.id)}
+                      onCheckedChange={() => toggleChannel(channel.id)}
+                      className="mt-0.5"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm">
+                          {channel.type.toUpperCase()} - {channel.account_number}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {channel.account_name}
+                      </p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+            
+            {selectedChannelIds.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {selectedChannelIds.length} channel{selectedChannelIds.length > 1 ? "s" : ""} selected
+              </p>
+            )}
           </div>
         </div>
 

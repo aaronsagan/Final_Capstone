@@ -10,6 +10,9 @@ class Campaign extends Model
         'charity_id',
         'title',
         'description',
+        'problem',
+        'solution',
+        'expected_outcome',
         'target_amount',
         'deadline_at',
         'cover_image_path',
@@ -70,5 +73,11 @@ class Campaign extends Model
     public function volunteers()
     {
         return $this->hasMany(Volunteer::class);
+    }
+
+    public function donationChannels()
+    {
+        return $this->belongsToMany(DonationChannel::class, 'campaign_donation_channel')
+            ->withTimestamps();
     }
 }

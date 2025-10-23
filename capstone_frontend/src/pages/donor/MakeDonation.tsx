@@ -43,7 +43,7 @@ export default function MakeDonation() {
 
   const fetchCharities = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/charities`);
+      const res = await fetch(`${API_URL}/charities`);
       if (!res.ok) throw new Error('Failed to load charities');
       const data = await res.json();
       // backend returns { charities: { data: [...] } }
@@ -56,7 +56,7 @@ export default function MakeDonation() {
 
   const fetchCampaigns = async (charityId: number) => {
     try {
-      const res = await fetch(`${API_URL}/api/charities/${charityId}/campaigns`);
+      const res = await fetch(`${API_URL}/charities/${charityId}/campaigns`);
       if (!res.ok) throw new Error('Failed to load campaigns');
       const data = await res.json();
       // backend returns paginated data
@@ -94,7 +94,7 @@ export default function MakeDonation() {
         recurring_type: isRecurring ? (formData.frequency as 'weekly'|'monthly'|'quarterly') : undefined,
       } as any;
 
-      const res = await fetch(`${API_URL}/api/donations`, {
+      const res = await fetch(`${API_URL}/donations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -115,7 +115,7 @@ export default function MakeDonation() {
       const fd = new FormData();
       fd.append('file', formData.proofOfPayment);
       fd.append('proof_type', formData.paymentMethod);
-      const proofRes = await fetch(`${API_URL}/api/donations/${donation.id}/proof`, {
+      const proofRes = await fetch(`${API_URL}/donations/${donation.id}/proof`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`

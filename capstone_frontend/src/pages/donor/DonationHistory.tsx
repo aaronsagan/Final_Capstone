@@ -53,7 +53,7 @@ export default function DonationHistory() {
     try {
       setLoading(true);
       const token = authService.getToken();
-      const res = await fetch(`${API_URL}/api/me/donations`, {
+      const res = await fetch(`${API_URL}/me/donations`, {
         headers: {
           Accept: 'application/json',
           Authorization: token ? `Bearer ${token}` : ''
@@ -83,7 +83,7 @@ export default function DonationHistory() {
   const downloadReceipt = async (donationId: number) => {
     try {
       const token = authService.getToken();
-      const res = await fetch(`${API_URL}/api/donations/${donationId}/receipt`, {
+      const res = await fetch(`${API_URL}/donations/${donationId}/receipt`, {
         headers: {
           Authorization: token ? `Bearer ${token}` : ''
         }

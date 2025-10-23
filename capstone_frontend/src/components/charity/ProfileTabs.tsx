@@ -60,6 +60,7 @@ import {
   Twitter,
   Linkedin,
   Youtube,
+  Wallet,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { charityService } from "@/services/charity";
@@ -76,6 +77,7 @@ import { campaignService } from "@/services/campaigns";
 import { CreateUpdateModal } from "@/components/updates/CreateUpdateModal";
 import { DeleteDialog } from "@/components/ui/delete-dialog";
 import { OperatingHoursInput } from "@/components/charity/OperatingHoursInput";
+import { AddDonationChannelModal } from "@/components/campaign/AddDonationChannelModal";
 
 interface Update {
   id: number;
@@ -247,6 +249,9 @@ export function ProfileTabs({
   const [isSavingAboutUs, setIsSavingAboutUs] = useState(false);
   const [isSavingContact, setIsSavingContact] = useState(false);
   const [isSavingSocial, setIsSavingSocial] = useState(false);
+
+  // Donation Channel modal states (for Campaigns tab)
+  const [isDonationChannelModalOpen, setIsDonationChannelModalOpen] = useState(false);
 
   const filteredCampaigns = useMemo(() => {
     let list = [...campaigns];
@@ -971,7 +976,27 @@ export function ProfileTabs({
         {/* Toolbar */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <h2 className="text-xl font-bold">Your Campaigns</h2>
-          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+          <div className="flex items-center gap-3">
+            <Button className="bg-primary hover:bg-primary/90 h-10 transition-transform hover:scale-[1.01]" onClick={() => setIsCreateOpen(true)} aria-label="Create New Campaign">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Campaign
+            </Button>
+            <Button
+              variant="outline"
+              className="h-10 transition-transform hover:scale-[1.01]"
+              onClick={() => setIsDonationChannelModalOpen(true)}
+              aria-label="Add Donation Channel"
+            >
+              <Wallet className="h-4 w-4 mr-2" />
+              Add Donation Channel
+            </Button>
+          </div>
+        </div>
+
+        {/* Filters & Sort */}
+        <div className="flex flex-wrap items-center gap-3 bg-card border rounded-lg p-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground">Filter:</span>
             <div className="flex rounded-lg border border-border/50 overflow-hidden">
               {(['all','active','completed','pending'] as const).map(f => (
                 <button
@@ -979,14 +1004,17 @@ export function ProfileTabs({
                   role="tab"
                   aria-pressed={campaignFilter===f}
                   onClick={() => setCampaignFilter(f)}
-                  className={`px-3 py-2 text-sm transition-colors ${campaignFilter===f ? 'bg-white/10 text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${campaignFilter===f ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-accent text-muted-foreground hover:text-foreground'}`}
                 >
                   {f === 'all' ? 'All' : f.charAt(0).toUpperCase()+f.slice(1)}
                 </button>
               ))}
             </div>
+          </div>
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="text-sm font-medium text-muted-foreground">Sort:</span>
             <Select value={campaignSort} onValueChange={(v: any) => setCampaignSort(v)}>
-              <SelectTrigger className="w-[180px]" aria-label="Sort campaigns">
+              <SelectTrigger className="w-[150px]" aria-label="Sort campaigns">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
@@ -995,10 +1023,6 @@ export function ProfileTabs({
                 <SelectItem value="ending_soon">Ending Soon</SelectItem>
               </SelectContent>
             </Select>
-            <Button className="sm:ml-2 transition-transform hover:scale-[1.01]" onClick={() => setIsCreateOpen(true)} aria-label="Create New Campaign">
-              <Plus className="h-4 w-4 mr-2" />
-              Create New Campaign
-            </Button>
           </div>
         </div>
 
@@ -1069,6 +1093,18 @@ export function ProfileTabs({
         </Card>
       </TabsContent>
     </Tabs>
+
+    {/* Add Donation Channel Modal */}
+    <AddDonationChannelModal
+      open={isDonationChannelModalOpen}
+      onOpenChange={(open) => {
+        setIsDonationChannelModalOpen(open);
+      }}
+      onSuccess={() => {
+        toast.success("Donation channel added successfully!");
+        setIsDonationChannelModalOpen(false);
+      }}
+    />
 
     {/* Post Modal */}
     <Dialog open={isPostModalOpen} onOpenChange={setIsPostModalOpen}>

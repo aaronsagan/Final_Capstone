@@ -28,6 +28,7 @@ import { toast } from "@/hooks/use-toast";
 import { campaignService } from "@/services/campaigns";
 import { charityService } from "@/services/charity";
 import { buildStorageUrl } from "@/lib/api";
+import { DonationChannelsCard } from "@/components/campaign/DonationChannelsCard";
 
 interface Campaign {
   id: number;
@@ -117,7 +118,7 @@ export default function CampaignPage() {
         story: {
           problem: campaignResponse.problem || "",
           solution: campaignResponse.solution || "",
-          outcome: campaignResponse.outcome || "",
+          outcome: campaignResponse.expected_outcome || campaignResponse.outcome || "",
         },
         fundUsage: [],
         gallery: [],
@@ -379,8 +380,9 @@ export default function CampaignPage() {
                       {campaign.description}
                     </p>
 
-                    {campaign.story && (
+                    {campaign.story?.problem && (
                       <>
+                        <Separator />
                         <div>
                           <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
                             <span className="text-red-500">⚠️</span> The Problem
@@ -389,9 +391,12 @@ export default function CampaignPage() {
                             {campaign.story.problem}
                           </p>
                         </div>
+                      </>
+                    )}
 
+                    {campaign.story?.solution && (
+                      <>
                         <Separator />
-
                         <div>
                           <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
                             <span className="text-blue-500">💡</span> The Solution
@@ -400,9 +405,12 @@ export default function CampaignPage() {
                             {campaign.story.solution}
                           </p>
                         </div>
+                      </>
+                    )}
 
+                    {campaign.story?.outcome && (
+                      <>
                         <Separator />
-
                         <div>
                           <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
                             <span className="text-green-500">🎯</span> Expected Outcome
@@ -716,6 +724,9 @@ export default function CampaignPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Donation Channels */}
+              <DonationChannelsCard campaignId={campaign.id} />
             </div>
           </div>
         </div>

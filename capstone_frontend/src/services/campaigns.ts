@@ -20,6 +20,7 @@ export interface Campaign {
   problem?: string;
   solution?: string;
   outcome?: string;
+  expected_outcome?: string;
   target_amount?: number;
   current_amount?: number;
   deadline_at?: string;
@@ -35,6 +36,15 @@ export interface Campaign {
     name: string;
     logo_path?: string;
   };
+  donation_channels?: Array<{
+    id: number;
+    type: string;
+    label: string;
+    account_name: string;
+    account_number: string;
+    qr_code_path?: string;
+    is_active: boolean;
+  }>;
 }
 
 export interface CampaignFormData {

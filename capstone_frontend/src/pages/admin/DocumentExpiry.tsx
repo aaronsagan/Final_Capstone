@@ -65,21 +65,21 @@ export default function AdminDocumentExpiry() {
 
       // Fetch expiring documents
       const expiringResponse = await axios.get(
-        `${API_URL}/api/admin/documents/expiring?days=${daysFilter}`,
+        `${API_URL}/admin/documents/expiring?days=${daysFilter}`,
         authHeaders
       );
       setExpiringDocuments(expiringResponse.data?.expiring_documents ?? []);
 
       // Fetch expired documents
       const expiredResponse = await axios.get(
-        `${API_URL}/api/admin/documents/expired`,
+        `${API_URL}/admin/documents/expired`,
         authHeaders
       );
       setExpiredDocuments(expiredResponse.data?.expired_documents ?? []);
 
       // Fetch statistics
       const statsResponse = await axios.get(
-        `${API_URL}/api/admin/documents/expiry-statistics`,
+        `${API_URL}/admin/documents/expiry-statistics`,
         authHeaders
       );
       setStatistics(statsResponse.data ?? null);
@@ -96,7 +96,7 @@ export default function AdminDocumentExpiry() {
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       const authHeaders = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
       await axios.patch(
-        `${API_URL}/api/admin/documents/${documentId}/expiry`,
+        `${API_URL}/admin/documents/${documentId}/expiry`,
         {
           expires,
           expiry_date: expiryDate,

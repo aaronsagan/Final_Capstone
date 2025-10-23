@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Eye, Calendar, Target, Grid3x3, List } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, Calendar, Target, Grid3x3, List, Wallet } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,8 @@ import { campaignService, Campaign as ApiCampaign } from "@/services/campaigns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CampaignCard, Campaign as CampaignCardType } from "@/components/charity/CampaignCard";
 import { CampaignCardSkeleton } from "@/components/charity/CampaignCardSkeleton";
+import { AddDonationChannelModal } from "@/components/campaign/AddDonationChannelModal";
+import { CreateCampaignModal } from "@/components/charity/CreateCampaignModal";
 
 interface Campaign {
   id: number;
@@ -39,8 +41,11 @@ export default function CampaignManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isDonationChannelModalOpen, setIsDonationChannelModalOpen] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "cards">("cards");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("newest");
   
   const [formData, setFormData] = useState({
     title: "",
@@ -88,42 +93,8 @@ export default function CampaignManagement() {
     }
   };
 
-  const handleCreate = async () => {
-    try {
-      if (!user?.charity?.id) {
-        toast.error("No charity found for your account");
-        return;
-      }
-
-      if (!formData.title || !formData.targetAmount) {
-        toast.error("Please fill in all required fields");
-        return;
-      }
-
-      setSubmitting(true);
-
-      const data = {
-        title: formData.title,
-        description: formData.description,
-        target_amount: parseFloat(formData.targetAmount),
-        start_date: formData.startDate,
-        end_date: formData.endDate,
-        donation_type: formData.donationType,
-        status: formData.status,
-        cover_image: formData.image || undefined
-      };
-
-      await campaignService.createCampaign(user.charity.id, data);
-      toast.success("Campaign created successfully");
-      setIsCreateDialogOpen(false);
-      resetForm();
-      loadCampaigns();
-    } catch (error: any) {
-      console.error("Failed to create campaign:", error);
-      toast.error(error.response?.data?.message || "Failed to create campaign");
-    } finally {
-      setSubmitting(false);
-    }
+  const handleCreateSuccess = () => {
+    loadCampaigns();
   };
 
   const formatDateForInput = (dateString: string): string => {
@@ -321,14 +292,15 @@ export default function CampaignManagement() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2">Campaigns</h1>
           <p className="text-muted-foreground">
             Create and manage your fundraising campaigns
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
+          {/* View Toggle */}
           <div className="flex gap-1 border rounded-md p-1">
             <Button
               variant={viewMode === "cards" ? "default" : "ghost"}
@@ -345,9 +317,22 @@ export default function CampaignManagement() {
               <List className="h-4 w-4" />
             </Button>
           </div>
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
+          
+          {/* Action Buttons */}
+          <Button 
+            className="bg-primary hover:bg-primary/90 h-10"
+            onClick={() => setIsCreateDialogOpen(true)}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Create Campaign
+          </Button>
+          <Button
+            variant="outline"
+            className="h-10"
+            onClick={() => setIsDonationChannelModalOpen(true)}
+          >
+            <Wallet className="mr-2 h-4 w-4" />
+            Add Donation Channel
           </Button>
         </div>
       </div>
@@ -382,6 +367,48 @@ export default function CampaignManagement() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Filters & Sort */}
+      <div className="flex flex-wrap items-center gap-3 bg-card border rounded-lg p-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">Filter:</span>
+          <div className="flex rounded-md border overflow-hidden">
+            {[
+              { value: "all", label: "All" },
+              { value: "published", label: "Active" },
+              { value: "closed", label: "Completed" },
+              { value: "draft", label: "Pending" },
+            ].map((filter) => (
+              <button
+                key={filter.value}
+                onClick={() => setStatusFilter(filter.value)}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  statusFilter === filter.value
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-background hover:bg-accent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2 ml-auto">
+          <span className="text-sm font-medium text-muted-foreground">Sort:</span>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest</SelectItem>
+              <SelectItem value="oldest">Oldest</SelectItem>
+              <SelectItem value="highest">Highest Target</SelectItem>
+              <SelectItem value="progress">Most Funded</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Campaigns View */}
@@ -495,113 +522,13 @@ export default function CampaignManagement() {
         )
       )}
 
-      {/* Create Campaign Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create New Campaign</DialogTitle>
-            <DialogDescription>Fill in the details for your new fundraising campaign</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Campaign Title *</Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="e.g., Education Fund 2024"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description *</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Describe your campaign goals and impact"
-                rows={3}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="donationType">Donation Type *</Label>
-                <Select
-                  value={formData.donationType}
-                  onValueChange={(value: "one_time" | "recurring") => setFormData({ ...formData, donationType: value })}
-                >
-                  <SelectTrigger id="donationType">
-                    <SelectValue placeholder="Select donation type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="one_time">One-Time Donations</SelectItem>
-                    <SelectItem value="recurring">Recurring Donations</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="status">Status *</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value: "draft" | "published" | "closed" | "archived") => setFormData({ ...formData, status: value })}
-                >
-                  <SelectTrigger id="status">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="published">Published</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="targetAmount">Target Amount (₱) *</Label>
-                <Input
-                  id="targetAmount"
-                  type="number"
-                  value={formData.targetAmount}
-                  onChange={(e) => setFormData({ ...formData, targetAmount: e.target.value })}
-                  placeholder="100000"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="image">Campaign Image</Label>
-                <Input
-                  id="image"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setFormData({ ...formData, image: e.target.files?.[0] || null })}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date</Label>
-                <Input
-                  id="startDate"
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="endDate">End Date</Label>
-                <Input
-                  id="endDate"
-                  type="date"
-                  value={formData.endDate}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} disabled={submitting}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={submitting}>{submitting ? "Creating..." : "Create Campaign"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Create Campaign Modal */}
+      <CreateCampaignModal
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        charityId={user?.charity?.id}
+        onSuccess={handleCreateSuccess}
+      />
 
       {/* Edit Campaign Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -767,6 +694,18 @@ export default function CampaignManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add Donation Channel Modal */}
+      <AddDonationChannelModal
+        open={isDonationChannelModalOpen}
+        onOpenChange={(open) => {
+          setIsDonationChannelModalOpen(open);
+        }}
+        onSuccess={() => {
+          toast.success("Donation channel added successfully!");
+          setIsDonationChannelModalOpen(false);
+        }}
+      />
     </div>
   );
 }

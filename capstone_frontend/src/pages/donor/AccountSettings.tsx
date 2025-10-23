@@ -80,7 +80,7 @@ export default function AccountSettings() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/api/me/change-password`, {
+      const response = await fetch(`${API_URL}/me/change-password`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -124,7 +124,7 @@ export default function AccountSettings() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/api/me`, {
+      const response = await fetch(`${API_URL}/me`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

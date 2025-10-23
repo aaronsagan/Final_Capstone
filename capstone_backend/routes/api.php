@@ -9,6 +9,21 @@ use App\Http\Controllers\Admin\{VerificationController, AdminActionLogController
 // Health
 Route::get('/ping', fn () => ['ok' => true, 'time' => now()->toDateTimeString()]);
 
+// TEST ROUTE - Check campaign data
+Route::get('/test-campaign/{id}', function ($id) {
+    $campaign = \App\Models\Campaign::with(['donationChannels', 'charity'])->find($id);
+    if (!$campaign) return response()->json(['error' => 'Campaign not found'], 404);
+    return response()->json([
+        'id' => $campaign->id,
+        'title' => $campaign->title,
+        'problem' => $campaign->problem,
+        'solution' => $campaign->solution,
+        'expected_outcome' => $campaign->expected_outcome,
+        'channels' => $campaign->donationChannels->map(fn($ch) => ['id' => $ch->id, 'type' => $ch->type, 'label' => $ch->label]),
+        'channels_count' => $campaign->donationChannels->count(),
+    ], 200, [], JSON_PRETTY_PRINT);
+});
+
 // Philippine Locations API (Public)
 Route::get('/locations', [LocationController::class,'index']);
 Route::get('/locations/regions', [LocationController::class,'getRegions']);
@@ -53,6 +68,9 @@ Route::get('/charities/{charity}/updates', [\App\Http\Controllers\UpdateControll
 // Public categories and campaign comments
 Route::get('/categories', [CategoryController::class,'index']);
 Route::get('/campaigns/{campaign}/comments', [CampaignCommentController::class,'index']);
+
+// Public donation channels
+Route::get('/campaigns/{campaign}/donation-channels', [\App\Http\Controllers\DonationChannelController::class,'index']);
 
 // Public leaderboards
 Route::get('/leaderboard/donors', [LeaderboardController::class,'topDonors']);
@@ -146,6 +164,14 @@ Route::middleware(['auth:sanctum','role:charity_admin'])->group(function(){
   Route::post('/charities/{charity}/campaigns', [CampaignController::class,'store']);
   Route::put('/campaigns/{campaign}', [CampaignController::class,'update']);
   Route::delete('/campaigns/{campaign}', [CampaignController::class,'destroy']);
+
+  // Donation Channels Management
+  Route::get('/charity/donation-channels', [\App\Http\Controllers\DonationChannelController::class,'getCharityChannels']);
+  Route::post('/charity/donation-channels', [\App\Http\Controllers\DonationChannelController::class,'store']);
+  Route::put('/donation-channels/{channel}', [\App\Http\Controllers\DonationChannelController::class,'update']);
+  Route::delete('/donation-channels/{channel}', [\App\Http\Controllers\DonationChannelController::class,'destroy']);
+  Route::post('/donation-channels/{channel}/toggle', [\App\Http\Controllers\DonationChannelController::class,'toggleActive']);
+  Route::post('/campaigns/{campaign}/donation-channels/attach', [\App\Http\Controllers\DonationChannelController::class,'attachToCampaign']);
 
   Route::get('/charities/{charity}/donations', [DonationController::class,'charityInbox']);
   Route::patch('/donations/{donation}/confirm', [DonationController::class,'confirm']);

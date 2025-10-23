@@ -22,7 +22,7 @@ export default function AdminNotifications() {
     try {
       setLoading(true);
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-      const res = await fetch(`${API_URL}/api/me/notifications?unread=false`, {
+      const res = await fetch(`${API_URL}/me/notifications?unread=false`, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
       if (!res.ok) throw new Error('Failed');
@@ -36,7 +36,7 @@ export default function AdminNotifications() {
 
   const markAllRead = async () => {
     const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-    await fetch(`${API_URL}/api/notifications/mark-all-read`, {
+    await fetch(`${API_URL}/notifications/mark-all-read`, {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });

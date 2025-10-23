@@ -52,7 +52,7 @@ export default function Profile() {
       const token = authService.getToken();
       
       // Fetch donations
-      const donationsRes = await fetch(`${API_URL}/api/me/donations`, {
+      const donationsRes = await fetch(`${API_URL}/me/donations`, {
         headers: {
           Accept: 'application/json',
           Authorization: token ? `Bearer ${token}` : ''

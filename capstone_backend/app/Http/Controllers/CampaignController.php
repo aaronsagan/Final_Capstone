@@ -18,7 +18,9 @@ class CampaignController extends Controller
         return $charity->campaigns()->where('status','published')->latest()->paginate(12);
     }
 
-    public function show(Campaign $campaign){ return $campaign; }
+    public function show(Campaign $campaign){ 
+        return $campaign->load(['charity', 'donationChannels']);
+    }
 
     public function store(Request $r, Charity $charity){
         try {
@@ -27,6 +29,10 @@ class CampaignController extends Controller
             $data = $r->validate([
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
+                'problem' => 'nullable|string',
+                'solution' => 'nullable|string',
+                'expected_outcome' => 'nullable|string',
+                'outcome' => 'nullable|string',
                 'target_amount' => 'nullable|numeric|min:0',
                 'deadline_at' => 'nullable|date|after:today',
                 'status' => 'in:draft,published,closed,archived',
@@ -35,6 +41,12 @@ class CampaignController extends Controller
                 'end_date' => 'nullable|date|after_or_equal:start_date',
                 'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
             ]);
+
+            // Map 'outcome' to 'expected_outcome' if provided
+            if (isset($data['outcome'])) {
+                $data['expected_outcome'] = $data['outcome'];
+                unset($data['outcome']);
+            }
 
             // Handle cover image upload
             if ($r->hasFile('cover_image')) {
@@ -50,7 +62,7 @@ class CampaignController extends Controller
 
             return response()->json([
                 'message' => 'Campaign created successfully',
-                'campaign' => $campaign->load('charity')
+                'campaign' => $campaign->load(['charity', 'donationChannels'])
             ], 201);
 
         } catch (ValidationException $e) {
@@ -79,6 +91,10 @@ class CampaignController extends Controller
         $data = $r->validate([
             'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
+            'problem' => 'nullable|string',
+            'solution' => 'nullable|string',
+            'expected_outcome' => 'nullable|string',
+            'outcome' => 'nullable|string',
             'target_amount' => 'nullable|numeric|min:0',
             'deadline_at' => 'nullable|date',
             'status' => 'sometimes|in:draft,published,closed,archived',
@@ -88,13 +104,19 @@ class CampaignController extends Controller
             'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
+        // Map 'outcome' to 'expected_outcome' if provided
+        if (isset($data['outcome'])) {
+            $data['expected_outcome'] = $data['outcome'];
+            unset($data['outcome']);
+        }
+
         // Handle cover image upload
         if ($r->hasFile('cover_image')) {
             $data['cover_image_path'] = $r->file('cover_image')->store('campaign_covers', 'public');
         }
 
         $campaign->update($data);
-        return $campaign->load('charity');
+        return $campaign->load(['charity', 'donationChannels']);
     }
 
     public function destroy(Request $r, Campaign $campaign){

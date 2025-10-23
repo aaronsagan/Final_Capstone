@@ -118,7 +118,7 @@ export default function EditProfile() {
         updateFormData.append('profile_image', imageFile);
       }
 
-      const response = await fetch(`${API_URL}/api/me`, {
+      const response = await fetch(`${API_URL}/me`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

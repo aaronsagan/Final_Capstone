@@ -49,7 +49,7 @@ export default function FundTransparency() {
         toast.info('Please log in to view your transparency dashboard');
         return;
       }
-      const res = await fetch(`${API_URL}/api/me/transparency`, {
+      const res = await fetch(`${API_URL}/me/transparency`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
       });
       if (!res.ok) throw new Error('Failed to load transparency data');

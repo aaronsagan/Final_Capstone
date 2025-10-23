@@ -60,7 +60,7 @@ export default function CharityDetail() {
 
   const fetchCharityDetails = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/charities/${id}`);
+      const response = await fetch(`${API_URL}/charities/${id}`);
       if (!response.ok) throw new Error('Charity not found');
       
       const data = await response.json();
@@ -72,7 +72,7 @@ export default function CharityDetail() {
 
   const fetchCampaigns = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/charities/${id}/campaigns`);
+      const response = await fetch(`${API_URL}/charities/${id}/campaigns`);
       if (response.ok) {
         const data = await response.json();
         setCampaigns(data);
@@ -86,7 +86,7 @@ export default function CharityDetail() {
 
   const fetchDocuments = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/charities/${id}/documents`);
+      const response = await fetch(`${API_URL}/charities/${id}/documents`);
       if (response.ok) {
         const data = await response.json();
         setDocuments(data);
@@ -100,7 +100,7 @@ export default function CharityDetail() {
     try {
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       if (!token) return; // not logged in
-      const res = await fetch(`${API_URL}/api/charities/${id}/follow-status`, {
+      const res = await fetch(`${API_URL}/charities/${id}/follow-status`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) return;
@@ -116,7 +116,7 @@ export default function CharityDetail() {
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       if (!token) return; // Not logged in, skip loading channels
       
-      const response = await fetch(`${API_URL}/api/charities/${id}/channels`, {
+      const response = await fetch(`${API_URL}/charities/${id}/channels`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
@@ -148,7 +148,7 @@ export default function CharityDetail() {
         return;
       }
       setFollowLoading(true);
-      const res = await fetch(`${API_URL}/api/charities/${id}/follow`, {
+      const res = await fetch(`${API_URL}/charities/${id}/follow`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });

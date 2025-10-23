@@ -58,7 +58,7 @@ export default function CharityCard({ charity, isFollowing = false, onFollowTogg
     try {
       // Fetch follower count
       const followersResponse = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/charities/${charity.id}/followers-count`
+        `${import.meta.env.VITE_API_URL}/charities/${charity.id}/followers-count`
       );
       if (followersResponse.ok) {
         const followersData = await followersResponse.json();
@@ -67,7 +67,7 @@ export default function CharityCard({ charity, isFollowing = false, onFollowTogg
 
       // Fetch campaigns
       const campaignsResponse = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/charities/${charity.id}/campaigns`
+        `${import.meta.env.VITE_API_URL}/charities/${charity.id}/campaigns`
       );
       if (campaignsResponse.ok) {
         const campaignsData = await campaignsResponse.json();
@@ -77,7 +77,7 @@ export default function CharityCard({ charity, isFollowing = false, onFollowTogg
 
       // Fetch charity details for total raised
       const charityResponse = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/charities/${charity.id}`
+        `${import.meta.env.VITE_API_URL}/charities/${charity.id}`
       );
       if (charityResponse.ok) {
         const charityData = await charityResponse.json();
@@ -103,7 +103,7 @@ export default function CharityCard({ charity, isFollowing = false, onFollowTogg
       }
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/charities/${charity.id}/follow`,
+        `${import.meta.env.VITE_API_URL}/charities/${charity.id}/follow`,
         {
           method: "POST",
           headers: {
