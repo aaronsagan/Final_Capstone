@@ -23,6 +23,11 @@ class CharityFollow extends Model
         return $this->belongsTo(User::class, 'donor_id');
     }
 
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'donor_id');
+    }
+
     public function charity()
     {
         return $this->belongsTo(Charity::class);

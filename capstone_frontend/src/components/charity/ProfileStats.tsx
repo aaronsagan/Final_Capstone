@@ -9,9 +9,20 @@ interface ProfileStatsProps {
     updates: number;
   };
   formatCurrency: (amount: number) => string;
+  onTotalRaisedClick?: () => void;
+  onCampaignsClick?: () => void;
+  onFollowersClick?: () => void;
+  onUpdatesClick?: () => void;
 }
 
-export function ProfileStats({ stats, formatCurrency }: ProfileStatsProps) {
+export function ProfileStats({ 
+  stats, 
+  formatCurrency,
+  onTotalRaisedClick,
+  onCampaignsClick,
+  onFollowersClick,
+  onUpdatesClick
+}: ProfileStatsProps) {
   const statItems = [
     {
       icon: TrendingUp,
@@ -21,6 +32,7 @@ export function ProfileStats({ stats, formatCurrency }: ProfileStatsProps) {
       ring: "ring-emerald-500/30",
       iconColor: "text-emerald-400",
       valueColor: "text-emerald-400",
+      onClick: onTotalRaisedClick,
     },
     {
       icon: Target,
@@ -30,6 +42,7 @@ export function ProfileStats({ stats, formatCurrency }: ProfileStatsProps) {
       ring: "ring-indigo-500/30",
       iconColor: "text-indigo-400",
       valueColor: "text-indigo-400",
+      onClick: onCampaignsClick,
     },
     {
       icon: Users,
@@ -39,6 +52,7 @@ export function ProfileStats({ stats, formatCurrency }: ProfileStatsProps) {
       ring: "ring-sky-500/30",
       iconColor: "text-sky-400",
       valueColor: "text-sky-400",
+      onClick: onFollowersClick,
     },
     {
       icon: FileText,
@@ -48,6 +62,7 @@ export function ProfileStats({ stats, formatCurrency }: ProfileStatsProps) {
       ring: "ring-fuchsia-500/30",
       iconColor: "text-fuchsia-400",
       valueColor: "text-fuchsia-400",
+      onClick: onUpdatesClick,
     },
   ];
 
@@ -56,7 +71,11 @@ export function ProfileStats({ stats, formatCurrency }: ProfileStatsProps) {
       {statItems.map((item, index) => (
         <Card
           key={index}
-          className={`relative overflow-hidden bg-background/40 border-border/40 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-150 cursor-pointer rounded-2xl ring-1 ${item.ring}`}
+          className={`relative overflow-hidden bg-background/40 border-border/40 hover:shadow-lg hover:-translate-y-1 transition-all duration-150 cursor-pointer rounded-2xl ring-1 ${item.ring} hover:ring-2 active:scale-[0.98]`}
+          onClick={item.onClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && item.onClick?.()}
         >
           {/* Gradient tint */}
           <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${item.gradient}`} />

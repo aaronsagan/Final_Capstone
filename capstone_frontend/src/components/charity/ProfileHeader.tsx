@@ -28,6 +28,8 @@ interface ProfileHeaderProps {
   onEdit: () => void;
   onShare: () => void;
   onBack: () => void;
+  onProfileClick?: () => void;
+  onCoverClick?: () => void;
 }
 
 export function ProfileHeader({ 
@@ -36,7 +38,9 @@ export function ProfileHeader({
   coverUrl, 
   onEdit, 
   onShare, 
-  onBack 
+  onBack,
+  onProfileClick,
+  onCoverClick
 }: ProfileHeaderProps) {
   return (
     <div className="relative bg-gradient-to-br from-orange-50/30 via-pink-50/20 to-blue-50/30 dark:from-orange-950/10 dark:via-pink-950/10 dark:to-blue-950/10">
@@ -56,7 +60,13 @@ export function ProfileHeader({
 
       {/* Cover Photo with Side Margins - Personal Profile Style */}
       <div className="container mx-auto px-4 lg:px-8 pt-4 pb-16">
-        <div className="relative h-[280px] lg:h-[340px] rounded-2xl overflow-hidden shadow-lg bg-gradient-to-br from-orange-100/50 via-pink-100/40 to-blue-100/50 dark:from-orange-900/20 dark:via-pink-900/20 dark:to-blue-900/20">
+        <div 
+          className="relative h-[280px] lg:h-[340px] rounded-2xl overflow-hidden shadow-lg bg-gradient-to-br from-orange-100/50 via-pink-100/40 to-blue-100/50 dark:from-orange-900/20 dark:via-pink-900/20 dark:to-blue-900/20 cursor-pointer group transition-transform hover:scale-[1.01] duration-200"
+          onClick={onCoverClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && onCoverClick?.()}
+        >
           {coverUrl ? (
             <img 
               src={coverUrl} 
@@ -81,7 +91,14 @@ export function ProfileHeader({
           )}
           
           {/* Subtle gradient overlay - lighter than before */}
-          <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-transparent dark:from-gray-900/40" />
+          <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-transparent dark:from-gray-900/40 group-hover:from-white/50 transition-colors" />
+          
+          {/* Hover hint */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="bg-black/60 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm font-medium">
+              Click to view or change cover photo
+            </div>
+          </div>
         </div>
       </div>
 
@@ -90,11 +107,21 @@ export function ProfileHeader({
         <div className="relative -mt-24 lg:-mt-28">
           <div className="flex flex-col lg:flex-row items-start lg:items-end gap-4 lg:gap-6 lg:pl-6">
             {/* Logo - Slightly overlapping cover bottom, positioned more to the right */}
-            <Avatar className="h-32 w-32 lg:h-40 lg:w-40 ring-6 ring-white dark:ring-gray-900 shadow-2xl transition-transform duration-200 hover:scale-105 bg-white dark:bg-gray-800 lg:ml-8">
+            <Avatar 
+              className="h-32 w-32 lg:h-40 lg:w-40 ring-6 ring-white dark:ring-gray-900 shadow-2xl transition-transform duration-200 hover:scale-105 bg-white dark:bg-gray-800 lg:ml-8 cursor-pointer group"
+              onClick={onProfileClick}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && onProfileClick?.()}
+            >
               <AvatarImage src={logoUrl || undefined} alt={charity.name} />
               <AvatarFallback className="text-4xl lg:text-5xl font-bold bg-gradient-to-br from-[#F2A024] to-orange-500 text-white">
                 {charity.acronym || charity.name?.substring(0, 2).toUpperCase() || 'HK'}
               </AvatarFallback>
+              {/* Hover hint overlay */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-sm rounded-full">
+                <span className="text-white text-xs font-medium text-center px-2">Click to view</span>
+              </div>
             </Avatar>
 
             {/* Info & Actions - Better spacing */}

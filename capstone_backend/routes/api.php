@@ -79,6 +79,7 @@ Route::middleware(['auth:sanctum','role:donor'])->group(function(){
 
 // Public charity follow stats
 Route::get('/charities/{charity}/followers-count', [CharityFollowController::class,'getFollowersCount']);
+Route::get('/charities/{charity}/followers', [CharityFollowController::class,'getFollowers']);
 
 // Public transparency (for approved charities only)
 Route::get('/charities/{charity}/transparency', [TransparencyController::class,'publicTransparency']);

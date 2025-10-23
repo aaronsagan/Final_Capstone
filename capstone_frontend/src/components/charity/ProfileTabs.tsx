@@ -48,18 +48,34 @@ import {
   Calendar,
   Pencil,
   ExternalLink,
+  Mail,
+  Phone,
+  Globe,
+  MapPin,
+  Clock,
+  CheckCircle2,
+  User,
+  Facebook,
+  Instagram,
+  Twitter,
+  Linkedin,
+  Youtube,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { charityService } from "@/services/charity";
 import { toast } from "sonner";
 import { updatesService } from "@/services/updates";
 import { getStorageUrl } from "@/lib/storage";
 import { CampaignCardSkeleton } from "@/components/charity/CampaignCardSkeleton";
 import { CampaignCard, Campaign as DashboardCampaign } from "@/components/charity/CampaignCard";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { CreateCampaignModal } from "@/components/charity/CreateCampaignModal";
 import { campaignService } from "@/services/campaigns";
 import { CreateUpdateModal } from "@/components/updates/CreateUpdateModal";
 import { DeleteDialog } from "@/components/ui/delete-dialog";
+import { OperatingHoursInput } from "@/components/charity/OperatingHoursInput";
 
 interface Update {
   id: number;
@@ -112,6 +128,24 @@ interface ProfileTabsProps {
     description?: string;
     registration_number?: string;
     created_at?: string;
+    email?: string;
+    contact_email?: string;
+    primary_email?: string;
+    phone?: string;
+    contact_phone?: string;
+    primary_phone?: string;
+    address?: string;
+    full_address?: string;
+    website?: string;
+    website_url?: string;
+    operating_hours?: string;
+    facebook_url?: string;
+    instagram_url?: string;
+    twitter_url?: string;
+    linkedin_url?: string;
+    youtube_url?: string;
+    is_email_verified?: boolean;
+    is_phone_verified?: boolean;
   };
   recentUpdates: Update[];
   campaigns: Campaign[];
@@ -124,6 +158,7 @@ interface ProfileTabsProps {
   campaignsLoading?: boolean;
   onCampaignsRefresh?: () => void;
   onUpdatesRefresh?: () => void;
+  onProfileRefresh?: () => void;
 }
 
 export function ProfileTabs({ 
@@ -138,9 +173,13 @@ export function ProfileTabs({
   onTabChange,
   campaignsLoading,
   onCampaignsRefresh,
-  onUpdatesRefresh
+  onUpdatesRefresh,
+  onProfileRefresh
 }: ProfileTabsProps) {
   const navigate = useNavigate();
+  const derivedEmail = (charity as any)?.email || (charity as any)?.contact_email;
+  const derivedPhone = (charity as any)?.phone || (charity as any)?.contact_phone;
+  const derivedWebsite = (charity as any)?.website || (charity as any)?.website_url;
   const [updates, setUpdates] = useState<Update[]>(recentUpdates || []);
   const [expandedComments, setExpandedComments] = useState<Set<number>>(new Set());
   const [comments, setComments] = useState<Record<number, Comment[]>>({});
@@ -175,6 +214,39 @@ export function ProfileTabs({
   const [editContent, setEditContent] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [updateToDelete, setUpdateToDelete] = useState<number | null>(null);
+
+  // About Tab Edit Modals
+  const [isMissionModalOpen, setIsMissionModalOpen] = useState(false);
+  const [isVisionModalOpen, setIsVisionModalOpen] = useState(false);
+  const [isAboutUsModalOpen, setIsAboutUsModalOpen] = useState(false);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
+
+  // Edit Form States
+  const [missionText, setMissionText] = useState("");
+  const [visionText, setVisionText] = useState("");
+  const [aboutUsText, setAboutUsText] = useState("");
+  const [contactForm, setContactForm] = useState({
+    email: "",
+    phone: "",
+    address: "",
+    operating_hours: "",
+    website: ""
+  });
+  const [socialForm, setSocialForm] = useState({
+    facebook_url: "",
+    instagram_url: "",
+    twitter_url: "",
+    linkedin_url: "",
+    youtube_url: ""
+  });
+
+  // Saving states
+  const [isSavingMission, setIsSavingMission] = useState(false);
+  const [isSavingVision, setIsSavingVision] = useState(false);
+  const [isSavingAboutUs, setIsSavingAboutUs] = useState(false);
+  const [isSavingContact, setIsSavingContact] = useState(false);
+  const [isSavingSocial, setIsSavingSocial] = useState(false);
 
   const filteredCampaigns = useMemo(() => {
     let list = [...campaigns];
@@ -211,6 +283,20 @@ export function ProfileTabs({
     window.addEventListener('open-update-create', openUpdate as EventListener);
     return () => window.removeEventListener('open-update-create', openUpdate as EventListener);
   }, []);
+
+  // Listen for contact edit event from ProfileSidebar
+  useEffect(() => {
+    const openContactEdit = () => handleOpenContactModal();
+    window.addEventListener('open-contact-edit', openContactEdit as EventListener);
+    return () => window.removeEventListener('open-contact-edit', openContactEdit as EventListener);
+  }, [charity]);
+
+  // Listen for social edit event from ProfileSidebar
+  useEffect(() => {
+    const openSocialEdit = () => handleOpenSocialModal();
+    window.addEventListener('open-social-edit', openSocialEdit as EventListener);
+    return () => window.removeEventListener('open-social-edit', openSocialEdit as EventListener);
+  }, [charity]);
 
   useEffect(() => {
     setUpdates(recentUpdates || []);
@@ -346,6 +432,155 @@ export function ProfileTabs({
     }
   };
 
+  // Word count utility
+  const getWordCount = (text: string) => {
+    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+  };
+
+  // About Tab Modal Handlers
+  const handleOpenMissionModal = () => {
+    setMissionText(charity.mission || "");
+    setIsMissionModalOpen(true);
+  };
+
+  const handleOpenVisionModal = () => {
+    setVisionText(charity.vision || "");
+    setIsVisionModalOpen(true);
+  };
+
+  const handleOpenAboutUsModal = () => {
+    setAboutUsText(charity.description || "");
+    setIsAboutUsModalOpen(true);
+  };
+
+  const handleOpenContactModal = () => {
+    setContactForm({
+      email: (charity as any)?.contact_email || (charity as any)?.email || (charity as any)?.primary_email || "",
+      phone: (charity as any)?.contact_phone || (charity as any)?.phone || (charity as any)?.primary_phone || "",
+      address: charity.address || (charity as any)?.full_address || "",
+      operating_hours: charity.operating_hours || "",
+      website: (charity as any)?.website || (charity as any)?.website_url || ""
+    });
+    setIsContactModalOpen(true);
+  };
+
+  const handleOpenSocialModal = () => {
+    setSocialForm({
+      facebook_url: (charity as any)?.facebook_url || "",
+      instagram_url: (charity as any)?.instagram_url || "",
+      twitter_url: (charity as any)?.twitter_url || "",
+      linkedin_url: (charity as any)?.linkedin_url || "",
+      youtube_url: (charity as any)?.youtube_url || ""
+    });
+    setIsSocialModalOpen(true);
+  };
+
+  // Save Handlers
+  const handleSaveMission = async () => {
+    if (getWordCount(missionText) > 1000) {
+      toast.error("Mission text exceeds 1000 words");
+      return;
+    }
+    setIsSavingMission(true);
+    try {
+      await charityService.updateProfile({ mission: missionText });
+      toast.success("Mission updated successfully");
+      setIsMissionModalOpen(false);
+      if (onProfileRefresh) onProfileRefresh();
+    } catch (error) {
+      toast.error("Failed to update mission");
+      console.error("Error updating mission:", error);
+    } finally {
+      setIsSavingMission(false);
+    }
+  };
+
+  const handleSaveVision = async () => {
+    if (getWordCount(visionText) > 1000) {
+      toast.error("Vision text exceeds 1000 words");
+      return;
+    }
+    setIsSavingVision(true);
+    try {
+      await charityService.updateProfile({ vision: visionText });
+      toast.success("Vision updated successfully");
+      setIsVisionModalOpen(false);
+      if (onProfileRefresh) onProfileRefresh();
+    } catch (error) {
+      toast.error("Failed to update vision");
+      console.error("Error updating vision:", error);
+    } finally {
+      setIsSavingVision(false);
+    }
+  };
+
+  const handleSaveAboutUs = async () => {
+    if (getWordCount(aboutUsText) > 2000) {
+      toast.error("About Us text exceeds 2000 words");
+      return;
+    }
+    setIsSavingAboutUs(true);
+    try {
+      await charityService.updateProfile({ description: aboutUsText });
+      toast.success("About Us updated successfully");
+      setIsAboutUsModalOpen(false);
+      if (onProfileRefresh) onProfileRefresh();
+    } catch (error) {
+      toast.error("Failed to update About Us");
+      console.error("Error updating About Us:", error);
+    } finally {
+      setIsSavingAboutUs(false);
+    }
+  };
+
+  const handleSaveContact = async () => {
+    // Validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (contactForm.email && !emailRegex.test(contactForm.email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    setIsSavingContact(true);
+    try {
+      await charityService.updateProfile({
+        email: contactForm.email,
+        phone: contactForm.phone,
+        address: contactForm.address,
+        operating_hours: contactForm.operating_hours,
+        website: contactForm.website
+      });
+      toast.success("Contact information updated successfully");
+      setIsContactModalOpen(false);
+      if (onProfileRefresh) onProfileRefresh();
+    } catch (error) {
+      toast.error("Failed to update contact information");
+      console.error("Error updating contact:", error);
+    } finally {
+      setIsSavingContact(false);
+    }
+  };
+
+  const handleSaveSocial = async () => {
+    setIsSavingSocial(true);
+    try {
+      await charityService.updateProfile(socialForm);
+      toast.success("Social profiles updated successfully");
+      setIsSocialModalOpen(false);
+      if (onProfileRefresh) onProfileRefresh();
+    } catch (error) {
+      toast.error("Failed to update social profiles");
+      console.error("Error updating social profiles:", error);
+    } finally {
+      setIsSavingSocial(false);
+    }
+  };
+
+  // Derive admin name
+  const adminName = (charity as any)?.owner?.name || 
+                   [(charity as any)?.first_name, (charity as any)?.middle_initial, (charity as any)?.last_name].filter(Boolean).join(' ').trim() ||
+                   [(charity as any)?.primary_first_name, (charity as any)?.primary_middle_initial, (charity as any)?.primary_last_name].filter(Boolean).join(' ').trim();
+
   return (
     <>
     <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
@@ -396,45 +631,74 @@ export function ProfileTabs({
 
       {/* About Tab */}
       <TabsContent value="about" id="about-panel" role="tabpanel" className="space-y-6">
+        {/* Mission Card */}
         {charity.mission && (
           <Card className="hover:shadow-md transition-shadow duration-200">
             <CardHeader>
-              <h2 className="text-xl font-bold">Mission</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold">Mission</h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent"
+                  aria-label="Edit Mission"
+                  onClick={handleOpenMissionModal}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground leading-relaxed">
-                {charity.mission}
-              </p>
+              <p className="text-muted-foreground leading-relaxed">{charity.mission}</p>
             </CardContent>
           </Card>
         )}
 
+        {/* Vision Card */}
         {charity.vision && (
           <Card className="hover:shadow-md transition-shadow duration-200">
             <CardHeader>
-              <h2 className="text-xl font-bold">Vision</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold">Vision</h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent"
+                  aria-label="Edit Vision"
+                  onClick={handleOpenVisionModal}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground leading-relaxed">
-                {charity.vision}
-              </p>
+              <p className="text-muted-foreground leading-relaxed">{charity.vision}</p>
             </CardContent>
           </Card>
         )}
 
+        {/* About Us Card */}
         {charity.description && (
           <Card className="hover:shadow-md transition-shadow duration-200">
             <CardHeader>
-              <h2 className="text-xl font-bold">About Us</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold">About Us</h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent"
+                  aria-label="Edit About Us"
+                  onClick={handleOpenAboutUsModal}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                {charity.description}
-              </p>
+              <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{charity.description}</p>
             </CardContent>
           </Card>
         )}
-        
       </TabsContent>
 
       {/* Updates Tab */}
@@ -1008,6 +1272,300 @@ export function ProfileTabs({
       charityId={charity?.id}
       onSuccess={onCampaignsRefresh}
     />
+
+    {/* Mission Edit Modal */}
+    <Dialog open={isMissionModalOpen} onOpenChange={setIsMissionModalOpen}>
+      <DialogContent className="sm:max-w-[700px]">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">Edit Mission</DialogTitle>
+          <DialogDescription>
+            Share your charity's core mission statement (max 1000 words)
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div>
+            <Textarea
+              value={missionText}
+              onChange={(e) => setMissionText(e.target.value)}
+              placeholder="Enter your mission statement..."
+              rows={8}
+              className="resize-none text-base leading-relaxed border-border/60 focus:border-primary"
+            />
+            <div className="flex justify-between items-center mt-2 text-sm">
+              <span className={`${getWordCount(missionText) > 1000 ? 'text-red-500' : 'text-muted-foreground'}`}>
+                {getWordCount(missionText)} / 1000 words
+              </span>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsMissionModalOpen(false)} disabled={isSavingMission}>
+            Cancel
+          </Button>
+          <Button onClick={handleSaveMission} disabled={isSavingMission || !missionText.trim() || getWordCount(missionText) > 1000}>
+            {isSavingMission ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : "Save Changes"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Vision Edit Modal */}
+    <Dialog open={isVisionModalOpen} onOpenChange={setIsVisionModalOpen}>
+      <DialogContent className="sm:max-w-[700px]">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">Edit Vision</DialogTitle>
+          <DialogDescription>
+            Share your charity's vision for the future (max 1000 words)
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div>
+            <Textarea
+              value={visionText}
+              onChange={(e) => setVisionText(e.target.value)}
+              placeholder="Enter your vision statement..."
+              rows={8}
+              className="resize-none text-base leading-relaxed border-border/60 focus:border-primary"
+            />
+            <div className="flex justify-between items-center mt-2 text-sm">
+              <span className={`${getWordCount(visionText) > 1000 ? 'text-red-500' : 'text-muted-foreground'}`}>
+                {getWordCount(visionText)} / 1000 words
+              </span>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsVisionModalOpen(false)} disabled={isSavingVision}>
+            Cancel
+          </Button>
+          <Button onClick={handleSaveVision} disabled={isSavingVision || !visionText.trim() || getWordCount(visionText) > 1000}>
+            {isSavingVision ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : "Save Changes"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* About Us Edit Modal */}
+    <Dialog open={isAboutUsModalOpen} onOpenChange={setIsAboutUsModalOpen}>
+      <DialogContent className="sm:max-w-[700px]">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">Edit About Us</DialogTitle>
+          <DialogDescription>
+            Tell your charity's story and what makes you unique (max 2000 words)
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div>
+            <Textarea
+              value={aboutUsText}
+              onChange={(e) => setAboutUsText(e.target.value)}
+              placeholder="Tell us about your charity..."
+              rows={12}
+              className="resize-none text-base leading-relaxed border-border/60 focus:border-primary"
+            />
+            <div className="flex justify-between items-center mt-2 text-sm">
+              <span className={`${getWordCount(aboutUsText) > 2000 ? 'text-red-500' : 'text-muted-foreground'}`}>
+                {getWordCount(aboutUsText)} / 2000 words
+              </span>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsAboutUsModalOpen(false)} disabled={isSavingAboutUs}>
+            Cancel
+          </Button>
+          <Button onClick={handleSaveAboutUs} disabled={isSavingAboutUs || !aboutUsText.trim() || getWordCount(aboutUsText) > 2000}>
+            {isSavingAboutUs ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : "Save Changes"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Contact Information Edit Modal */}
+    <Dialog open={isContactModalOpen} onOpenChange={setIsContactModalOpen}>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">Edit Contact Information</DialogTitle>
+          <DialogDescription>
+            Update your charity's contact details
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="email" className="flex items-center gap-2">
+              <Mail className="h-4 w-4" />
+              Email Address
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              value={contactForm.email}
+              onChange={(e) => setContactForm({...contactForm, email: e.target.value})}
+              placeholder="contact@charity.org"
+              className="border-border/60 focus:border-primary"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone" className="flex items-center gap-2">
+              <Phone className="h-4 w-4" />
+              Contact Number
+            </Label>
+            <Input
+              id="phone"
+              type="tel"
+              value={contactForm.phone}
+              onChange={(e) => setContactForm({...contactForm, phone: e.target.value})}
+              placeholder="+1 (555) 123-4567"
+              className="border-border/60 focus:border-primary"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="address" className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Address
+            </Label>
+            <Textarea
+              id="address"
+              value={contactForm.address}
+              onChange={(e) => setContactForm({...contactForm, address: e.target.value})}
+              placeholder="123 Main Street, City, State, ZIP"
+              rows={3}
+              className="resize-none border-border/60 focus:border-primary"
+            />
+          </div>
+
+          <div>
+            <OperatingHoursInput
+              value={contactForm.operating_hours}
+              onChange={(value) => setContactForm({...contactForm, operating_hours: value})}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="website" className="flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              Website
+            </Label>
+            <Input
+              id="website"
+              type="url"
+              value={contactForm.website}
+              onChange={(e) => setContactForm({...contactForm, website: e.target.value})}
+              placeholder="https://www.yourcharity.org"
+              className="border-border/60 focus:border-primary"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsContactModalOpen(false)} disabled={isSavingContact}>
+            Cancel
+          </Button>
+          <Button onClick={handleSaveContact} disabled={isSavingContact}>
+            {isSavingContact ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : "Save Changes"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Social Profiles Edit Modal */}
+    <Dialog open={isSocialModalOpen} onOpenChange={setIsSocialModalOpen}>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">Edit Social Profiles</DialogTitle>
+          <DialogDescription>
+            Add or update your charity's social media links
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="facebook" className="flex items-center gap-2">
+              <Facebook className="h-4 w-4 text-blue-600" />
+              Facebook
+            </Label>
+            <Input
+              id="facebook"
+              type="url"
+              value={socialForm.facebook_url}
+              onChange={(e) => setSocialForm({...socialForm, facebook_url: e.target.value})}
+              placeholder="https://facebook.com/yourcharity"
+              className="border-border/60 focus:border-primary"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="instagram" className="flex items-center gap-2">
+              <Instagram className="h-4 w-4 text-pink-600" />
+              Instagram
+            </Label>
+            <Input
+              id="instagram"
+              type="url"
+              value={socialForm.instagram_url}
+              onChange={(e) => setSocialForm({...socialForm, instagram_url: e.target.value})}
+              placeholder="https://instagram.com/yourcharity"
+              className="border-border/60 focus:border-primary"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="twitter" className="flex items-center gap-2">
+              <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+              X (Twitter)
+            </Label>
+            <Input
+              id="twitter"
+              type="url"
+              value={socialForm.twitter_url}
+              onChange={(e) => setSocialForm({...socialForm, twitter_url: e.target.value})}
+              placeholder="https://x.com/yourcharity"
+              className="border-border/60 focus:border-primary"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="linkedin" className="flex items-center gap-2">
+              <Linkedin className="h-4 w-4 text-blue-700" />
+              LinkedIn
+            </Label>
+            <Input
+              id="linkedin"
+              type="url"
+              value={socialForm.linkedin_url}
+              onChange={(e) => setSocialForm({...socialForm, linkedin_url: e.target.value})}
+              placeholder="https://linkedin.com/company/yourcharity"
+              className="border-border/60 focus:border-primary"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="youtube" className="flex items-center gap-2">
+              <Youtube className="h-4 w-4 text-red-600" />
+              YouTube
+            </Label>
+            <Input
+              id="youtube"
+              type="url"
+              value={socialForm.youtube_url}
+              onChange={(e) => setSocialForm({...socialForm, youtube_url: e.target.value})}
+              placeholder="https://youtube.com/@yourcharity"
+              className="border-border/60 focus:border-primary"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsSocialModalOpen(false)} disabled={isSavingSocial}>
+            Cancel
+          </Button>
+          <Button onClick={handleSaveSocial} disabled={isSavingSocial}>
+            {isSavingSocial ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : "Save Changes"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </>
   );
 }

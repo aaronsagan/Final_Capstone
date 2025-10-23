@@ -88,4 +88,18 @@ class CharityFollowController extends Controller
             'followers_count' => $followersCount
         ]);
     }
+
+    // Get list of followers for a charity
+    public function getFollowers(Charity $charity)
+    {
+        $followers = CharityFollow::where('charity_id', $charity->id)
+            ->where('is_following', true)
+            ->with('user:id,name,email,profile_image,user_type')
+            ->orderBy('followed_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'data' => $followers
+        ]);
+    }
 }

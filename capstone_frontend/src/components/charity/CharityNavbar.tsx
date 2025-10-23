@@ -171,9 +171,9 @@ export const CharityNavbar = () => {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate('/charity/organization')} className="cursor-pointer">
+                <DropdownMenuItem onClick={() => navigate('/charity/profile')} className="cursor-pointer">
                   <Building2 className="mr-2 h-4 w-4" />
-                  Organization Profile
+                  Charity Profile
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate('/charity/settings')} className="cursor-pointer">
                   <Settings className="mr-2 h-4 w-4" />

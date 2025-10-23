@@ -185,6 +185,25 @@ class CharityService {
       throw error;
     }
   }
+
+  // Update charity profile (mission, vision, description, contacts, socials, etc.)
+  async updateProfile(payload: Record<string, any>) {
+    // Normalize website/social URLs to include scheme
+    const normalizeUrl = (url?: string) => {
+      if (!url) return url;
+      return /^(https?:)?\/\//i.test(url) ? url : `https://${url}`;
+    };
+    const body: Record<string, any> = { ...payload };
+    if (body.website) body.website = normalizeUrl(body.website);
+    if (body.facebook_url) body.facebook_url = normalizeUrl(body.facebook_url);
+    if (body.instagram_url) body.instagram_url = normalizeUrl(body.instagram_url);
+    if (body.twitter_url) body.twitter_url = normalizeUrl(body.twitter_url);
+    if (body.linkedin_url) body.linkedin_url = normalizeUrl(body.linkedin_url);
+    if (body.youtube_url) body.youtube_url = normalizeUrl(body.youtube_url);
+
+    const res = await this.api.post('/charity/profile/update', body);
+    return res.data;
+  }
 }
 
 // Export a single instance

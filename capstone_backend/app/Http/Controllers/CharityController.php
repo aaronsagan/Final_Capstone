@@ -324,11 +324,21 @@ class CharityController extends Controller
                 'province' => 'nullable|string',
                 'region' => 'nullable|string',
                 'full_address' => 'nullable|string',
+                'address' => 'nullable|string',
                 'first_name' => 'nullable|string|max:50',
                 'middle_initial' => 'nullable|string|max:1',
                 'last_name' => 'nullable|string|max:50',
+                'email' => 'nullable|email|unique:charities,contact_email,' . $charity->id,
                 'contact_email' => 'nullable|email|unique:charities,contact_email,' . $charity->id,
-                'contact_phone' => ['nullable', 'regex:/^(09|\+639)\d{9}$/']
+                'phone' => ['nullable', 'regex:/^(09|\+639)\d{9}$/'],
+                'contact_phone' => ['nullable', 'regex:/^(09|\+639)\d{9}$/'],
+                'website' => 'nullable|string|max:255',
+                'operating_hours' => 'nullable|string|max:500',
+                'facebook_url' => 'nullable|string|max:255',
+                'instagram_url' => 'nullable|string|max:255',
+                'twitter_url' => 'nullable|string|max:255',
+                'linkedin_url' => 'nullable|string|max:255',
+                'youtube_url' => 'nullable|string|max:255'
             ]);
 
             // Handle logo upload
@@ -353,6 +363,16 @@ class CharityController extends Controller
                 // Store new cover photo in charity-specific folder
                 $coverPath = $r->file('cover_photo')->store("charities/{$charity->id}", 'public');
                 $validated['cover_image'] = $coverPath;
+            }
+
+            // Map frontend field names to database field names
+            if (isset($validated['email'])) {
+                $validated['contact_email'] = $validated['email'];
+                unset($validated['email']);
+            }
+            if (isset($validated['phone'])) {
+                $validated['contact_phone'] = $validated['phone'];
+                unset($validated['phone']);
             }
 
             // Filter out empty values to only update provided fields

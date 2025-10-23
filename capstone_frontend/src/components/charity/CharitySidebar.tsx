@@ -14,12 +14,11 @@ import { motion } from "framer-motion";
 
 const navItems = [
   { title: "Dashboard", url: "/charity", icon: LayoutDashboard },
-  { title: "Organization Profile", url: "/charity/organization", icon: Building2 },
+  { title: "Charity Profile", url: "/charity/profile", icon: Building2 },
   { title: "Campaign Management", url: "/charity/campaigns", icon: Megaphone },
   { title: "Donation Management", url: "/charity/donations", icon: DollarSign },
   { title: "Fund Tracking", url: "/charity/fund-tracking", icon: TrendingUp },
   { title: "Bin", url: "/charity/bin", icon: Trash2 },
-  { title: "Profile", url: "/charity/profile", icon: User },
   { title: "Settings", url: "/charity/settings", icon: Settings },
 ];
 

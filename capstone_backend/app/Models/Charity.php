@@ -14,6 +14,8 @@ class Charity extends Model
         'primary_first_name','primary_middle_initial','primary_last_name','primary_position',
         'primary_email','primary_phone',
         'address','street_address','barangay','city','province','region','municipality','full_address','category',
+        'operating_hours',
+        'facebook_url','instagram_url','twitter_url','linkedin_url','youtube_url',
         'logo_path','cover_image',
         'verification_status','verified_at','verification_notes'
     ];

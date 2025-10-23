@@ -12,6 +12,8 @@ import { ProfileSidebar } from "@/components/charity/ProfileSidebar";
 import { UpdatesSidebar } from "@/components/charity/UpdatesSidebar";
 import { CampaignsSidebar } from "@/components/charity/CampaignsSidebar";
 import { ActionBar } from "@/components/charity/ActionBar";
+import { ImageViewerModal } from "@/components/charity/ImageViewerModal";
+import { FollowersModal } from "@/components/charity/FollowersModal";
 import { updatesService } from "@/services/updates";
 
 // Interface definitions moved to separate section for clarity
@@ -28,14 +30,23 @@ interface CharityData {
   banner_path?: string;
   email?: string;
   contact_email?: string;
+  primary_email?: string;
   phone?: string;
   contact_phone?: string;
+  primary_phone?: string;
   address?: string;
+  full_address?: string;
   region?: string;
   municipality?: string;
   province?: string;
   website?: string;
   website_url?: string;
+  operating_hours?: string;
+  facebook_url?: string;
+  instagram_url?: string;
+  twitter_url?: string;
+  linkedin_url?: string;
+  youtube_url?: string;
   verification_status?: string;
   is_verified?: boolean;
   created_at?: string;
@@ -92,6 +103,14 @@ export default function CharityProfilePage() {
   const [recentUpdates, setRecentUpdates] = useState<Update[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [activeTab, setActiveTab] = useState("about");
+  const [campaignsLoading, setCampaignsLoading] = useState(false);
+  
+  // Image viewer modal states
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [imageViewerType, setImageViewerType] = useState<"profile" | "cover">("profile");
+  
+  // Followers modal state
+  const [followersModalOpen, setFollowersModalOpen] = useState(false);
 
   useEffect(() => {
     loadProfileData();
@@ -195,17 +214,75 @@ export default function CharityProfilePage() {
   };
 
   const handleShare = () => {
-    const url = `${window.location.origin}/charity/${charity?.id}`;
+    const url = `${window.location.origin}/charities/${charity?.id || user?.charity?.id}`;
     if (navigator.share) {
       navigator.share({
-        title: charity?.name,
-        text: charity?.mission || charity?.tagline,
-        url: url,
+        title: charity?.name || 'Our Charity',
+        text: charity?.mission || 'Check out our charity profile',
+        url,
       });
     } else {
       navigator.clipboard.writeText(url);
-      toast.success("Profile link copied to clipboard!");
+      toast.success('Profile link copied to clipboard!');
     }
+  };
+
+  // Image viewer handlers
+  const handleProfileClick = () => {
+    setImageViewerType("profile");
+    setImageViewerOpen(true);
+  };
+
+  const handleCoverClick = () => {
+    setImageViewerType("cover");
+    setImageViewerOpen(true);
+  };
+
+  const handleImageUpdate = async (file: File, type: "profile" | "cover") => {
+    if (!charity?.id) return;
+
+    const formData = new FormData();
+    if (type === "profile") {
+      formData.append("logo", file);
+    } else {
+      formData.append("cover_photo", file);
+    }
+
+    try {
+      const token = localStorage.getItem("auth_token");
+      const response = await fetch(buildApiUrl(`/charities/${charity.id}/profile`), {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (response.ok) {
+        await loadProfileData();
+      } else {
+        throw new Error("Upload failed");
+      }
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  // Stat card handlers
+  const handleTotalRaisedClick = () => {
+    navigate('/charity/donations');
+  };
+
+  const handleCampaignsClick = () => {
+    navigate('/charity/campaigns');
+  };
+
+  const handleFollowersClick = () => {
+    setFollowersModalOpen(true);
+  };
+
+  const handleUpdatesClick = () => {
+    navigate('/charity/updates');
   };
 
   const formatCurrency = (amount?: number) => {
@@ -326,12 +403,21 @@ export default function CharityProfilePage() {
         onEdit={() => navigate('/charity/organization/manage')}
         onShare={handleShare}
         onBack={() => navigate('/charity/updates')}
+        onProfileClick={handleProfileClick}
+        onCoverClick={handleCoverClick}
       />
 
       {/* Main Content */}
       <div className="container mx-auto px-4 lg:px-8 pt-6">
         {/* Stats - Proper spacing from profile */}
-        <ProfileStats stats={statsData} formatCurrency={formatCurrency} />
+        <ProfileStats 
+          stats={statsData} 
+          formatCurrency={formatCurrency}
+          onTotalRaisedClick={handleTotalRaisedClick}
+          onCampaignsClick={handleCampaignsClick}
+          onFollowersClick={handleFollowersClick}
+          onUpdatesClick={handleUpdatesClick}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Main Content Area - 8 columns */}
@@ -348,6 +434,7 @@ export default function CharityProfilePage() {
               onTabChange={setActiveTab}
               onCampaignsRefresh={refreshCampaigns}
               onUpdatesRefresh={refreshUpdates}
+              onProfileRefresh={loadProfileData}
             />
           </div>
 
@@ -380,6 +467,26 @@ export default function CharityProfilePage() {
         onPostUpdate={() => navigate('/charity/updates?create=1')}
         onCreateCampaign={() => navigate('/charity/campaigns')}
       />
+
+      {/* Image Viewer & Upload Modal */}
+      <ImageViewerModal
+        open={imageViewerOpen}
+        onOpenChange={setImageViewerOpen}
+        imageUrl={imageViewerType === "profile" ? logoUrl : coverUrl}
+        imageType={imageViewerType}
+        charityName={displayCharity?.name || "Your Charity"}
+        onImageUpdate={handleImageUpdate}
+      />
+
+      {/* Followers Modal */}
+      {displayCharity?.id && (
+        <FollowersModal
+          open={followersModalOpen}
+          onOpenChange={setFollowersModalOpen}
+          charityId={displayCharity.id}
+          charityName={displayCharity.name}
+        />
+      )}
     </div>
   );
 }
