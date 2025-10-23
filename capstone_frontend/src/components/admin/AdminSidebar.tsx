@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Building2, FileText, Settings, AlertTriangle, Activity, FolderOpen, Calendar, Heart } from "lucide-react";
+import { LayoutDashboard, Users, Building2, Settings, AlertTriangle, Activity, ShieldAlert, Wallet, ReceiptText, ShieldCheck, Heart } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
   Sidebar,
@@ -16,11 +16,11 @@ const navItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
   { title: "Users", url: "/admin/users", icon: Users },
   { title: "Charities", url: "/admin/charities", icon: Building2 },
+  { title: "Compliance", url: "/admin/compliance", icon: ShieldAlert },
+  { title: "Fund Tracking", url: "/admin/funds", icon: Wallet },
+  { title: "Transactions", url: "/admin/transactions", icon: ReceiptText },
   { title: "Reports", url: "/admin/reports", icon: AlertTriangle },
   { title: "Action Logs", url: "/admin/action-logs", icon: Activity },
-  { title: "Categories", url: "/admin/categories", icon: FolderOpen },
-  { title: "Document Expiry", url: "/admin/document-expiry", icon: Calendar },
-  { title: "Audit Logs", url: "/admin/logs", icon: FileText },
   { title: "Settings", url: "/admin/settings", icon: Settings },
 ];
 

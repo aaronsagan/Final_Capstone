@@ -7,7 +7,7 @@ use App\Http\Controllers\{
 use App\Models\Charity;
 use App\Models\Campaign;
 use App\Models\CampaignUpdate;
-use App\Http\Controllers\Admin\{VerificationController, AdminActionLogController};
+use App\Http\Controllers\Admin\{VerificationController, AdminActionLogController, DocumentVerificationController};
 
 // Health
 Route::get('/ping', fn () => ['ok' => true, 'time' => now()->toDateTimeString()]);
@@ -254,7 +254,16 @@ Route::middleware(['auth:sanctum','role:charity_admin'])->group(function(){
 Route::middleware(['auth:sanctum','role:admin'])->group(function(){
   Route::get('/admin/verifications', [VerificationController::class,'index']);
   Route::get('/admin/charities', [VerificationController::class,'getAllCharities']);
+  Route::get('/admin/charities/{charity}/documents', [VerificationController::class,'getCharityDocuments']);
+  Route::get('/admin/charities/{charity}/campaigns', [VerificationController::class,'getCharityCampaigns']);
   Route::get('/admin/users', [VerificationController::class,'getUsers']);
+  Route::get('/admin/users/{user}/donations', [VerificationController::class,'getUserDonations']);
+  Route::get('/admin/user-activity-logs', [VerificationController::class,'getUserActivityLogs']);
+  Route::get('/admin/donations', [VerificationController::class,'getAllDonations']);
+  Route::get('/admin/compliance/audits', [VerificationController::class,'getComplianceAudits']);
+  Route::get('/admin/funds/summary', [VerificationController::class,'getFundsSummary']);
+  Route::get('/admin/funds/flows', [VerificationController::class,'getFundsFlows']);
+  Route::get('/admin/funds/anomalies', [VerificationController::class,'getFundsAnomalies']);
   Route::patch('/admin/charities/{charity}/approve', [VerificationController::class,'approve']);
   Route::patch('/admin/charities/{charity}/reject', [VerificationController::class,'reject']);
   Route::patch('/admin/users/{user}/suspend', [VerificationController::class,'suspendUser']);
@@ -290,6 +299,12 @@ Route::middleware(['auth:sanctum','role:admin'])->group(function(){
   Route::get('/admin/documents/expired', [DocumentExpiryController::class,'getExpiredDocuments']);
   Route::get('/admin/documents/expiry-statistics', [DocumentExpiryController::class,'getExpiryStatistics']);
   Route::patch('/admin/documents/{document}/expiry', [DocumentExpiryController::class,'updateDocumentExpiry']);
+  
+  // Document Verification (Individual Document Approval/Rejection)
+  Route::patch('/admin/documents/{document}/approve', [DocumentVerificationController::class,'approveDocument']);
+  Route::patch('/admin/documents/{document}/reject', [DocumentVerificationController::class,'rejectDocument']);
+  Route::patch('/admin/documents/{document}/reset', [DocumentVerificationController::class,'resetDocument']);
+  Route::get('/admin/charities/{charity}/document-stats', [DocumentVerificationController::class,'getDocumentStats']);
 });
 
 // routes/api.php

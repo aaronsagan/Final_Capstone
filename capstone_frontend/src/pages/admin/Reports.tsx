@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, Eye, CheckCircle, XCircle, Clock, Search, Filter } from "lucide-react";
+import { AlertTriangle, Eye, CheckCircle, XCircle, Clock, Search, Filter, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import axios from "axios";
+import { Skeleton } from "@/components/ui/skeleton";
+import { motion } from "framer-motion";
 
 interface Report {
   id: number;
@@ -63,6 +64,9 @@ export default function AdminReports() {
     fetchStatistics();
   }, [statusFilter, entityTypeFilter, reasonFilter, searchTerm]);
 
+  const apiBase = import.meta.env.VITE_API_URL;
+  const getToken = () => localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+
   const fetchReports = async () => {
     try {
       const params = new URLSearchParams();
@@ -71,8 +75,12 @@ export default function AdminReports() {
       if (reasonFilter !== "all") params.append("reason", reasonFilter);
       if (searchTerm) params.append("search", searchTerm);
 
-      const response = await axios.get(`/api/admin/reports?${params.toString()}`);
-      setReports(response.data.data || []);
+      const res = await fetch(`${apiBase}/admin/reports?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (!res.ok) throw new Error('Failed to fetch reports');
+      const data = await res.json();
+      setReports(Array.isArray(data) ? data : data?.data || []);
     } catch (error) {
       console.error("Failed to fetch reports:", error);
       toast.error("Failed to fetch reports");
@@ -84,8 +92,11 @@ export default function AdminReports() {
 
   const fetchStatistics = async () => {
     try {
-      const response = await axios.get("/api/admin/reports/statistics");
-      setStatistics(response.data);
+      const res = await fetch(`${apiBase}/admin/reports/statistics`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (!res.ok) return;
+      setStatistics(await res.json());
     } catch (error) {
       console.error("Failed to fetch statistics:", error);
     }
@@ -93,8 +104,12 @@ export default function AdminReports() {
 
   const handleViewDetails = async (report: Report) => {
     try {
-      const response = await axios.get(`/api/admin/reports/${report.id}`);
-      setSelectedReport(response.data.report);
+      const res = await fetch(`${apiBase}/admin/reports/${report.id}`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (!res.ok) throw new Error('Failed to fetch report');
+      const data = await res.json();
+      setSelectedReport(data.report || data);
       setIsDetailsOpen(true);
     } catch (error) {
       toast.error("Failed to fetch report details");
@@ -116,11 +131,19 @@ export default function AdminReports() {
     }
 
     try {
-      await axios.patch(`/api/admin/reports/${selectedReport.id}/review`, {
-        status: reviewStatus,
-        action_taken: actionTaken,
-        admin_notes: adminNotes,
+      const res = await fetch(`${apiBase}/admin/reports/${selectedReport.id}/review`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({
+          status: reviewStatus,
+          action_taken: actionTaken,
+          admin_notes: adminNotes,
+        }),
       });
+      if (!res.ok) throw new Error('Review failed');
 
       toast.success("Report reviewed successfully");
       setIsReviewOpen(false);
@@ -135,7 +158,11 @@ export default function AdminReports() {
     if (!confirm("Are you sure you want to delete this report?")) return;
 
     try {
-      await axios.delete(`/api/admin/reports/${reportId}`);
+      const res = await fetch(`${apiBase}/admin/reports/${reportId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (!res.ok) throw new Error('Delete failed');
       toast.success("Report deleted successfully");
       fetchReports();
       fetchStatistics();
@@ -172,69 +199,116 @@ export default function AdminReports() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-72 mt-2" />
+          </div>
+          <Skeleton className="h-10 w-24" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          {[...Array(5)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="pb-2">
+                <Skeleton className="h-4 w-28" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-6 w-16" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-24" />
+          </CardHeader>
+          <CardContent>
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-16 w-full bg-muted/40 animate-pulse rounded mb-3" />
+            ))}
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <motion.div 
+        className="flex justify-between items-center"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
         <div>
-          <h1 className="text-3xl font-bold">Reports Management</h1>
-          <p className="text-muted-foreground">Review and manage user reports</p>
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-red-600 to-orange-600 dark:from-red-400 dark:to-orange-400 bg-clip-text text-transparent">Reports Management</h1>
+          <p className="text-muted-foreground mt-1">Review and manage user reports</p>
         </div>
-      </div>
+        <Button variant="outline" size="sm" onClick={() => { setLoading(true); fetchReports(); fetchStatistics(); }} className="transition-all duration-200 hover:scale-105 hover:bg-red-50 dark:hover:bg-red-950 hover:border-red-300 dark:hover:border-red-700 active:scale-95">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
+      </motion.div>
 
       {/* Statistics Cards */}
       {statistics && (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Total Reports</CardTitle>
+        <motion.div 
+          className="grid grid-cols-1 md:grid-cols-5 gap-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+        >
+          <Card className="transition-all duration-300 hover:shadow-xl border-gray-100 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:scale-[1.02] cursor-pointer">
+            <CardHeader className="pb-2 bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-950/50 dark:to-slate-950/50">
+              <CardTitle className="text-sm font-medium text-gray-700">Total Reports</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{statistics.total}</div>
+              <div className="text-2xl font-bold bg-gradient-to-r from-gray-600 to-slate-600 dark:from-gray-400 dark:to-slate-400 bg-clip-text text-transparent">{statistics.total}</div>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Pending</CardTitle>
+          <Card className="transition-all duration-300 hover:shadow-xl border-red-100 dark:border-red-900 hover:border-red-300 dark:hover:border-red-700 hover:scale-[1.02] cursor-pointer">
+            <CardHeader className="pb-2 bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-950/50 dark:to-rose-950/50">
+              <CardTitle className="text-sm font-medium text-red-700">Pending</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">{statistics.pending}</div>
+              <div className="text-2xl font-bold bg-gradient-to-r from-red-600 to-rose-600 dark:from-red-400 dark:to-rose-400 bg-clip-text text-transparent">{statistics.pending}</div>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Under Review</CardTitle>
+          <Card className="transition-all duration-300 hover:shadow-xl border-yellow-100 dark:border-yellow-900 hover:border-yellow-300 dark:hover:border-yellow-700 hover:scale-[1.02] cursor-pointer">
+            <CardHeader className="pb-2 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-950/50 dark:to-amber-950/50">
+              <CardTitle className="text-sm font-medium text-yellow-700">Under Review</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{statistics.under_review}</div>
+              <div className="text-2xl font-bold bg-gradient-to-r from-yellow-600 to-amber-600 dark:from-yellow-400 dark:to-amber-400 bg-clip-text text-transparent">{statistics.under_review}</div>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Resolved</CardTitle>
+          <Card className="transition-all duration-300 hover:shadow-xl border-green-100 dark:border-green-900 hover:border-green-300 dark:hover:border-green-700 hover:scale-[1.02] cursor-pointer">
+            <CardHeader className="pb-2 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50">
+              <CardTitle className="text-sm font-medium text-green-700">Resolved</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{statistics.resolved}</div>
+              <div className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-400 dark:to-emerald-400 bg-clip-text text-transparent">{statistics.resolved}</div>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Dismissed</CardTitle>
+          <Card className="transition-all duration-300 hover:shadow-xl border-gray-100 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:scale-[1.02] cursor-pointer">
+            <CardHeader className="pb-2 bg-gradient-to-r from-gray-50 to-zinc-50 dark:from-gray-950/50 dark:to-zinc-950/50">
+              <CardTitle className="text-sm font-medium text-gray-700">Dismissed</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-600">{statistics.dismissed}</div>
+              <div className="text-2xl font-bold bg-gradient-to-r from-gray-600 to-zinc-600 dark:from-gray-400 dark:to-zinc-400 bg-clip-text text-transparent">{statistics.dismissed}</div>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
       )}
 
       {/* Filters */}
-      <Card>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.2 }}
+      >
+      <Card className="transition-all duration-300 hover:shadow-lg border-orange-100 dark:border-orange-900 dark:bg-gray-900/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Filter className="h-5 w-5" />
@@ -296,16 +370,29 @@ export default function AdminReports() {
           </div>
         </CardContent>
       </Card>
+      </motion.div>
 
       {/* Reports List */}
-      <Card>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.3 }}
+      >
+      <Card className="transition-all duration-300 hover:shadow-xl border-red-100 dark:border-red-900 dark:bg-gray-900/50">
         <CardHeader>
           <CardTitle>Reports ({(reports || []).length})</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {(reports || []).map((report) => (
-              <div key={report.id} className="border rounded-lg p-4 space-y-3">
+            {(reports || []).map((report, index) => (
+              <motion.div 
+                key={report.id} 
+                className="border rounded-lg p-4 space-y-3 transition-all duration-300 hover:bg-red-50/30 dark:hover:bg-red-950/20 hover:border-red-300 dark:hover:border-red-700 hover:shadow-md cursor-pointer dark:border-gray-800"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.05 }}
+                whileHover={{ scale: 1.01 }}
+              >
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -328,6 +415,7 @@ export default function AdminReports() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleViewDetails(report)}
+                      className="transition-all duration-200 hover:scale-105 hover:bg-blue-50 dark:hover:bg-blue-950"
                     >
                       <Eye className="h-4 w-4 mr-1" />
                       View
@@ -336,6 +424,7 @@ export default function AdminReports() {
                       <Button
                         size="sm"
                         onClick={() => handleReviewReport(report)}
+                        className="transition-all duration-200 hover:scale-105 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
                       >
                         <CheckCircle className="h-4 w-4 mr-1" />
                         Review
@@ -345,6 +434,7 @@ export default function AdminReports() {
                       variant="destructive"
                       size="sm"
                       onClick={() => deleteReport(report.id)}
+                      className="transition-all duration-200 hover:scale-105"
                     >
                       <XCircle className="h-4 w-4 mr-1" />
                       Delete
@@ -357,7 +447,7 @@ export default function AdminReports() {
                 <div className="text-xs text-muted-foreground">
                   Submitted: {new Date(report.created_at).toLocaleString()}
                 </div>
-              </div>
+              </motion.div>
             ))}
             {(reports || []).length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
@@ -367,6 +457,7 @@ export default function AdminReports() {
           </div>
         </CardContent>
       </Card>
+      </motion.div>
 
       {/* Report Details Dialog */}
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>

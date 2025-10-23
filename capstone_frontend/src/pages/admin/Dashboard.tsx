@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Users, Building2, CheckCircle, DollarSign, Activity, Eye, UserCheck, UserX, Clock, RefreshCw } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { motion } from "framer-motion";
 import { KPICard } from "@/components/admin/KPICard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -158,8 +160,71 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading dashboard...</div>
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <Skeleton className="h-9 w-56" />
+            <Skeleton className="h-4 w-64 mt-3" />
+          </div>
+          <Skeleton className="h-9 w-24" />
+        </div>
+
+        {/* KPI skeletons */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="rounded-xl border bg-card p-4">
+              <Skeleton className="h-4 w-24" />
+              <div className="mt-3 flex items-end justify-between">
+                <Skeleton className="h-8 w-20" />
+                <Skeleton className="h-6 w-6 rounded-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
+          <div className="rounded-xl border bg-card p-4">
+            <Skeleton className="h-6 w-64" />
+            <div className="mt-4 space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex items-center justify-between border rounded-lg p-3">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-3 w-40" />
+                    <Skeleton className="h-3 w-32" />
+                  </div>
+                  <div className="flex gap-2">
+                    <Skeleton className="h-8 w-8 rounded-md" />
+                    <Skeleton className="h-8 w-8 rounded-md" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-xl border bg-card p-4">
+            <Skeleton className="h-6 w-64" />
+            <div className="mt-4 space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex items-center justify-between border rounded-lg p-3">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-3 w-40" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-8 w-8 rounded-md" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border bg-card p-4">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-[300px] w-full mt-4" />
+        </div>
       </div>
     );
   }
@@ -173,7 +238,7 @@ export default function Dashboard() {
             Overview of your charity platform
           </p>
         </div>
-        <Button onClick={fetchDashboardData} variant="outline" size="sm">
+        <Button onClick={fetchDashboardData} variant="outline" size="sm" className="transition-smooth hover:scale-[1.02] active:scale-[0.98]">
           <RefreshCw className="mr-2 h-4 w-4" />
           Refresh
         </Button>
@@ -185,36 +250,47 @@ export default function Dashboard() {
           value={metrics?.total_users?.toString() || '0'}
           icon={Users}
           description="All registered users"
+          to="/admin/users"
+          variant="emerald"
         />
         <KPICard
           title="Total Donors"
           value={metrics?.total_donors?.toString() || '0'}
           icon={DollarSign}
           description="Registered donors"
+          to="/admin/users"
+          variant="blue"
         />
         <KPICard
           title="Charity Admins"
           value={metrics?.total_charity_admins?.toString() || '0'}
           icon={Building2}
           description="Charity representatives"
+          to="/admin/users"
+          variant="purple"
         />
         <KPICard
           title="Approved Charities"
           value={metrics?.charities?.toString() || '0'}
           icon={CheckCircle}
           description="Verified organizations"
+          to="/admin/charities"
+          variant="pink"
         />
         <KPICard
           title="Pending Verifications"
           value={metrics?.pending_verifications?.toString() || '0'}
           icon={Activity}
           description="Awaiting review"
+          to="/admin/charities"
+          variant="amber"
         />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
         {/* Pending Charities */}
-        <Card>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+        <Card className="shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5" />
@@ -227,7 +303,7 @@ export default function Dashboard() {
             ) : (
               <div className="space-y-4">
                 {(pendingCharities || []).map((charity) => (
-                  <div key={charity.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div key={charity.id} className="flex items-center justify-between p-3 border rounded-lg bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/30 dark:to-slate-800/20">
                     <div className="flex-1">
                       <h4 className="font-medium">{charity.name}</h4>
                       <p className="text-sm text-muted-foreground">{charity.contact_email}</p>
@@ -240,6 +316,7 @@ export default function Dashboard() {
                         size="sm"
                         onClick={() => handleCharityAction(charity.id, 'approve')}
                         disabled={actionLoading === `approve-${charity.id}`}
+                        className="transition-smooth"
                       >
                         {actionLoading === `approve-${charity.id}` ? (
                           <RefreshCw className="h-3 w-3 animate-spin" />
@@ -252,6 +329,7 @@ export default function Dashboard() {
                         variant="outline"
                         onClick={() => handleCharityAction(charity.id, 'reject')}
                         disabled={actionLoading === `reject-${charity.id}`}
+                        className="transition-smooth"
                       >
                         {actionLoading === `reject-${charity.id}` ? (
                           <RefreshCw className="h-3 w-3 animate-spin" />
@@ -266,9 +344,11 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+        </motion.div>
 
         {/* Recent Users */}
-        <Card>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: 0.05 }}>
+        <Card className="shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
@@ -281,7 +361,7 @@ export default function Dashboard() {
             ) : (
               <div className="space-y-4">
                 {(recentUsers || []).map((user) => (
-                  <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg bg-gradient-to-br from-blue-50 to-white dark:from-blue-900/20 dark:to-slate-800/20">
                     <div className="flex-1">
                       <h4 className="font-medium">{user.name}</h4>
                       <p className="text-sm text-muted-foreground">{user.email}</p>
@@ -301,6 +381,7 @@ export default function Dashboard() {
                           variant="outline"
                           onClick={() => handleUserAction(user.id, 'suspend')}
                           disabled={actionLoading === `suspend-${user.id}`}
+                          className="transition-smooth"
                         >
                           {actionLoading === `suspend-${user.id}` ? (
                             <RefreshCw className="h-3 w-3 animate-spin" />
@@ -313,6 +394,7 @@ export default function Dashboard() {
                           size="sm"
                           onClick={() => handleUserAction(user.id, 'activate')}
                           disabled={actionLoading === `activate-${user.id}`}
+                          className="transition-smooth"
                         >
                           {actionLoading === `activate-${user.id}` ? (
                             <RefreshCw className="h-3 w-3 animate-spin" />
@@ -328,9 +410,11 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+        </motion.div>
       </div>
 
-      <Card>
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: 0.1 }}>
+      <Card className="shadow-sm">
         <CardHeader>
           <CardTitle>Charity Registrations Trend</CardTitle>
         </CardHeader>
@@ -365,6 +449,7 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </CardContent>
       </Card>
+      </motion.div>
     </div>
   );
 }

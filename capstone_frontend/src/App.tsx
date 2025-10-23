@@ -78,14 +78,13 @@ import { AdminLayout } from "./components/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/Dashboard";
 import Users from "./pages/admin/Users";
 import Charities from "./pages/admin/Charities";
-import AuditLogs from "./pages/admin/AuditLogs";
 import Settings from "./pages/admin/Settings";
 import Profile from "./pages/admin/Profile";
 import Reports from "./pages/admin/Reports";
 import ActionLogs from "./pages/admin/ActionLogs";
-import Categories from "./pages/admin/Categories";
-import DocumentExpiry from "./pages/admin/DocumentExpiry";
-import AdminNotifications from "./pages/admin/Notifications";
+import Compliance from "./pages/admin/Compliance";
+import AdminFundTracking from "./pages/admin/FundTracking";
+import Transactions from "./pages/admin/Transactions";
 
 const queryClient = new QueryClient();
 
@@ -200,12 +199,11 @@ const App = () => (
               <Route index element={<AdminDashboard />} />
               <Route path="users" element={<Users />} />
               <Route path="charities" element={<Charities />} />
+              <Route path="compliance" element={<Compliance />} />
+              <Route path="funds" element={<AdminFundTracking />} />
+              <Route path="transactions" element={<Transactions />} />
               <Route path="reports" element={<Reports />} />
-              <Route path="notifications" element={<AdminNotifications />} />
               <Route path="action-logs" element={<ActionLogs />} />
-              <Route path="categories" element={<Categories />} />
-              <Route path="document-expiry" element={<DocumentExpiry />} />
-              <Route path="logs" element={<AuditLogs />} />
               <Route path="settings" element={<Settings />} />
               <Route path="profile" element={<Profile />} />
             </Route>

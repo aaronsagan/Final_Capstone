@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\Donation;
 use App\Models\Charity;
+use App\Models\CharityDocument;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 
@@ -192,6 +193,52 @@ class NotificationService
 
         } catch (\Exception $e) {
             Log::error('Failed to send system alert: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Send document verification status notification
+     */
+    public function sendDocumentVerificationStatus(CharityDocument $document, string $status)
+    {
+        try {
+            $charity = $document->charity;
+            
+            if (!$charity || !$charity->owner) {
+                return;
+            }
+
+            $docTypeLabels = [
+                'registration' => 'Registration Certificate',
+                'tax' => 'Tax Exemption Certificate',
+                'bylaws' => 'Bylaws Document',
+                'audit' => 'Audit Report',
+                'other' => 'Supporting Document',
+            ];
+
+            $data = [
+                'charity_name' => $charity->name,
+                'document_type' => $docTypeLabels[$document->doc_type] ?? ucfirst($document->doc_type),
+                'status' => $status,
+                'rejection_reason' => $document->rejection_reason ?? null,
+                'admin_notes' => $document->admin_notes ?? null,
+            ];
+
+            // Send email to charity admin
+            $template = $status === 'approved' ? 'emails.document-approved' : 'emails.document-rejected';
+            $subject = $status === 'approved' 
+                ? "Document Approved - {$charity->name}" 
+                : "Document Requires Resubmission - {$charity->name}";
+
+            Mail::send($template, $data, function($message) use ($charity, $subject) {
+                $message->to($charity->owner->email)
+                        ->subject($subject);
+            });
+
+            Log::info("Document {$status} notification sent to {$charity->owner->email} for document ID {$document->id}");
+
+        } catch (\Exception $e) {
+            Log::error('Failed to send document verification notification: ' . $e->getMessage());
         }
     }
 }
