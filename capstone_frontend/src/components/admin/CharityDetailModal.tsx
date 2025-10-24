@@ -282,13 +282,13 @@ export const CharityDetailModal = ({ charity, open, onClose, onAction }: Charity
     );
   };
 
-  if (!charity) return null;
-
   const statusColors = {
     pending: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
     verified: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
     rejected: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
   };
+
+  if (!charity) return null;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>

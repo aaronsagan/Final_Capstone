@@ -6,6 +6,7 @@ use App\Models\{Campaign, Charity};
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
+use App\Services\ActivityLogger;
 
 class CampaignController extends Controller
 {
@@ -59,6 +60,9 @@ class CampaignController extends Controller
             }
 
             $campaign = $charity->campaigns()->create($data);
+
+            // Log campaign creation activity
+            ActivityLogger::logCreateCampaign($campaign, $r);
 
             return response()->json([
                 'message' => 'Campaign created successfully',
@@ -116,11 +120,19 @@ class CampaignController extends Controller
         }
 
         $campaign->update($data);
+        
+        // Log campaign update activity
+        ActivityLogger::logUpdateCampaign($campaign, $r);
+        
         return $campaign->load(['charity', 'donationChannels']);
     }
 
     public function destroy(Request $r, Campaign $campaign){
         abort_unless($campaign->charity->owner_id === $r->user()->id, 403);
+        
+        // Log campaign deletion activity before deleting
+        ActivityLogger::logDeleteCampaign($campaign, $r);
+        
         $campaign->delete();
         return response()->noContent();
     }

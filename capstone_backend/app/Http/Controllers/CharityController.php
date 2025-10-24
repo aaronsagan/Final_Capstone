@@ -6,6 +6,7 @@ use App\Models\{Charity, CharityDocument, DonationChannel, User};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\Services\NotificationService;
+use App\Services\ActivityLogger;
 
 class CharityController extends Controller
 {
@@ -382,6 +383,9 @@ class CharityController extends Controller
 
             // Update the charity with only the provided fields
             $charity->update($dataToUpdate);
+
+            // Log profile update activity
+            ActivityLogger::logUpdateProfile($user, $r);
 
             return response()->json([
                 'message' => 'Charity profile updated successfully',

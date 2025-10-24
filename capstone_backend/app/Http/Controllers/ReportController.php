@@ -7,6 +7,7 @@ use App\Models\AdminActionLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use App\Services\ActivityLogger;
 
 class ReportController extends Controller
 {
@@ -45,6 +46,9 @@ class ReportController extends Controller
             'evidence_path' => $evidencePath,
             'status' => 'pending',
         ]);
+
+        // Log report submission activity
+        ActivityLogger::logSubmitReport($report, $request);
 
         return response()->json([
             'message' => 'Report submitted successfully. Our team will review it shortly.',

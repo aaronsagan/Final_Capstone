@@ -85,6 +85,7 @@ import ActionLogs from "./pages/admin/ActionLogs";
 import Compliance from "./pages/admin/Compliance";
 import AdminFundTracking from "./pages/admin/FundTracking";
 import Transactions from "./pages/admin/Transactions";
+import AdminNotifications from "./pages/admin/Notifications";
 
 const queryClient = new QueryClient();
 
@@ -206,6 +207,7 @@ const App = () => (
               <Route path="transactions" element={<Transactions />} />
               <Route path="reports" element={<Reports />} />
               <Route path="action-logs" element={<ActionLogs />} />
+              <Route path="notifications" element={<AdminNotifications />} />
               <Route path="settings" element={<Settings />} />
               <Route path="profile" element={<Profile />} />
             </Route>

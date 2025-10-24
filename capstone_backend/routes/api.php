@@ -137,25 +137,15 @@ Route::middleware(['auth:sanctum','role:charity_admin'])->group(function(){
   Route::get('/charities/{charity}/transparency', [TransparencyController::class,'charityTransparency']);
 });
 
-// Donor actions
-Route::middleware(['auth:sanctum','role:donor'])->group(function(){
-  Route::post('/donations', [DonationController::class,'store']);
-  Route::post('/donations/{donation}/proof', [DonationController::class,'uploadProof']);
-  Route::post('/campaigns/{campaign}/donate', [DonationController::class,'submitManualDonation']);
-  Route::post('/charities/{charity}/donate', [DonationController::class,'submitCharityDonation']);
+// Notifications and common user endpoints (available to any authenticated user role)
+Route::middleware(['auth:sanctum'])->group(function(){
+  // Any authenticated user can view their own donations
   Route::get('/me/donations', [DonationController::class,'myDonations']);
   Route::get('/donations/{donation}/receipt', [DonationController::class,'downloadReceipt']);
   
-  // Reports (Donor can submit reports)
-  Route::post('/reports', [ReportController::class,'store']);
+  // Any authenticated user can view their own reports
   Route::get('/me/reports', [ReportController::class,'myReports']);
-  
-  // Campaign Comments (Donor can comment)
-  Route::post('/campaigns/{campaign}/comments', [CampaignCommentController::class,'store']);
-});
 
-// Notifications (available to any authenticated user role)
-Route::middleware(['auth:sanctum'])->group(function(){
   Route::get('/me/notifications', [NotificationController::class,'index']);
   Route::post('/notifications/{notification}/read', [NotificationController::class,'markAsRead']);
   Route::post('/notifications/mark-all-read', [NotificationController::class,'markAllAsRead']);
@@ -170,6 +160,20 @@ Route::middleware(['auth:sanctum'])->group(function(){
   Route::put('/comments/{id}', [\App\Http\Controllers\UpdateController::class,'updateComment']);
   Route::delete('/comments/{id}', [\App\Http\Controllers\UpdateController::class,'deleteComment']);
   Route::post('/comments/{id}/like', [\App\Http\Controllers\UpdateController::class,'toggleCommentLike']);
+});
+
+// Donor-specific actions
+Route::middleware(['auth:sanctum','role:donor'])->group(function(){
+  Route::post('/donations', [DonationController::class,'store']);
+  Route::post('/donations/{donation}/proof', [DonationController::class,'uploadProof']);
+  Route::post('/campaigns/{campaign}/donate', [DonationController::class,'submitManualDonation']);
+  Route::post('/charities/{charity}/donate', [DonationController::class,'submitCharityDonation']);
+  
+  // Reports (Donor can submit reports)
+  Route::post('/reports', [ReportController::class,'store']);
+  
+  // Campaign Comments (Donor can comment)
+  Route::post('/campaigns/{campaign}/comments', [CampaignCommentController::class,'store']);
 });
 
 // System admin (for recurring donations processing and security)
@@ -276,10 +280,15 @@ Route::middleware(['auth:sanctum','role:admin'])->group(function(){
   Route::patch('/admin/reports/{report}/review', [ReportController::class,'review']);
   Route::delete('/admin/reports/{report}', [ReportController::class,'destroy']);
   
-  // Admin Action Logs
-  Route::get('/admin/action-logs', [AdminActionLogController::class,'index']);
-  Route::get('/admin/action-logs/statistics', [AdminActionLogController::class,'statistics']);
-  Route::get('/admin/action-logs/export', [AdminActionLogController::class,'export']);
+  // Admin Action Logs (Admin-only actions)
+  Route::get('/admin/admin-action-logs', [AdminActionLogController::class,'index']);
+  Route::get('/admin/admin-action-logs/statistics', [AdminActionLogController::class,'statistics']);
+  Route::get('/admin/admin-action-logs/export', [AdminActionLogController::class,'export']);
+  
+  // Activity Logs (All user activities - donors, charity admins, system admins)
+  Route::get('/admin/activity-logs', [\App\Http\Controllers\Admin\ActivityLogController::class,'index']);
+  Route::get('/admin/activity-logs/statistics', [\App\Http\Controllers\Admin\ActivityLogController::class,'statistics']);
+  Route::get('/admin/activity-logs/export', [\App\Http\Controllers\Admin\ActivityLogController::class,'export']);
   
   // Category Management
   Route::get('/admin/categories', [CategoryController::class,'adminIndex']);

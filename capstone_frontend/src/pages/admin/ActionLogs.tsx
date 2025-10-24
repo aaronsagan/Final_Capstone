@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,7 @@ export default function AdminActionLogs() {
   const [logs, setLogs] = useState<UserActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [actionTypeFilter, setActionTypeFilter] = useState("all");
   const [userRoleFilter, setUserRoleFilter] = useState("all");
   const [targetTypeFilter, setTargetTypeFilter] = useState("all");
@@ -38,35 +39,68 @@ export default function AdminActionLogs() {
   const apiBase = import.meta.env.VITE_API_URL;
   const getToken = () => localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
 
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   useEffect(() => {
     fetchLogs();
-  }, [actionTypeFilter, userRoleFilter, targetTypeFilter, startDate, endDate, searchTerm]);
+  }, [actionTypeFilter, userRoleFilter, targetTypeFilter, startDate, endDate, debouncedSearchTerm]);
 
   const fetchLogs = async () => {
     try {
+      setLoading(true);
       const params = new URLSearchParams();
       if (actionTypeFilter !== "all") params.append("action_type", actionTypeFilter);
       if (userRoleFilter !== "all") params.append("user_role", userRoleFilter);
       if (targetTypeFilter !== "all") params.append("target_type", targetTypeFilter);
       if (startDate) params.append("start_date", startDate);
       if (endDate) params.append("end_date", endDate);
-      if (searchTerm) params.append("search", searchTerm);
+      if (debouncedSearchTerm) params.append("search", debouncedSearchTerm);
 
-      const res = await fetch(`${apiBase}/admin/user-activity-logs?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
+      const res = await fetch(`${apiBase}/admin/activity-logs?${params.toString()}`, {
+        headers: { 
+          Authorization: `Bearer ${getToken()}`,
+          'Accept': 'application/json'
+        },
       });
       
-      if (res.status === 404) {
-        // Endpoint not implemented yet, silently set empty array
+      if (res.status === 401) {
         setLogs([]);
+        toast.error('Unauthorized. Please log in as an admin.');
+        // Optionally redirect to login
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
         return;
       }
       
-      if (!res.ok) throw new Error('Failed to fetch logs');
+      if (res.status === 404) {
+        setLogs([]);
+        toast.error('Activity logs endpoint not found');
+        return;
+      }
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to fetch logs');
+      }
+      
       const data = await res.json();
-      setLogs(Array.isArray(data) ? data : data?.data || []);
+      const logsData = Array.isArray(data) ? data : data?.data || [];
+      setLogs(logsData);
+      
+      if (logsData.length === 0 && (actionTypeFilter !== 'all' || userRoleFilter !== 'all' || debouncedSearchTerm)) {
+        toast.info('No logs found matching your filters');
+      }
     } catch (error) {
-      // Network error or endpoint not available, silently set empty array
+      console.error('Error fetching logs:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to load activity logs');
       setLogs([]);
     } finally {
       setLoading(false);
@@ -82,7 +116,7 @@ export default function AdminActionLogs() {
       if (startDate) params.append("start_date", startDate);
       if (endDate) params.append("end_date", endDate);
 
-      const res = await fetch(`${apiBase}/admin/user-activity-logs/export?${params.toString()}`, {
+      const res = await fetch(`${apiBase}/admin/activity-logs/export?${params.toString()}`, {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       if (!res.ok) throw new Error('Export failed');
@@ -201,6 +235,11 @@ export default function AdminActionLogs() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
+              {searchTerm !== debouncedSearchTerm && (
+                <div className="absolute right-3 top-3">
+                  <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              )}
             </div>
             <Select value={userRoleFilter} onValueChange={setUserRoleFilter}>
               <SelectTrigger>
@@ -209,7 +248,7 @@ export default function AdminActionLogs() {
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
                 <SelectItem value="donor">Donors</SelectItem>
-                <SelectItem value="charity">Charity Admins</SelectItem>
+                <SelectItem value="charity_admin">Charity Admins</SelectItem>
                 <SelectItem value="admin">System Admins</SelectItem>
               </SelectContent>
             </Select>
@@ -256,6 +295,25 @@ export default function AdminActionLogs() {
               onChange={(e) => setEndDate(e.target.value)}
             />
           </div>
+          {(searchTerm || actionTypeFilter !== 'all' || userRoleFilter !== 'all' || targetTypeFilter !== 'all' || startDate || endDate) && (
+            <div className="flex justify-end mt-4">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  setSearchTerm('');
+                  setActionTypeFilter('all');
+                  setUserRoleFilter('all');
+                  setTargetTypeFilter('all');
+                  setStartDate('');
+                  setEndDate('');
+                }}
+                className="text-sm"
+              >
+                Clear All Filters
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
       </motion.div>

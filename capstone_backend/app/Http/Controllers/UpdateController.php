@@ -9,6 +9,7 @@ use App\Models\UpdateShare;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use App\Services\ActivityLogger;
 
 class UpdateController extends Controller
 {
@@ -147,6 +148,9 @@ class UpdateController extends Controller
 
             $update->load('charity');
 
+            // Log post creation activity
+            ActivityLogger::logCreatePost($update, $request);
+
             return response()->json($update, 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['error' => 'Validation failed', 'details' => $e->errors()], 422);
@@ -176,6 +180,9 @@ class UpdateController extends Controller
 
             $update->update(['content' => $validated['content']]);
 
+            // Log post update activity
+            ActivityLogger::logUpdatePost($update, $request);
+
             return response()->json($update);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['error' => 'Validation failed', 'details' => $e->errors()], 422);
@@ -198,6 +205,9 @@ class UpdateController extends Controller
             if ($user->role !== 'charity_admin' || !$user->charity || $update->charity_id !== $user->charity->id) {
                 return response()->json(['error' => 'Unauthorized'], 403);
             }
+
+            // Log post deletion activity before deleting
+            ActivityLogger::logDeletePost($update, request());
 
             // Soft delete (moves to bin)
             $update->delete();

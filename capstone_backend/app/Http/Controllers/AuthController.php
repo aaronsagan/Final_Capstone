@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
 use App\Services\SecurityService;
+use App\Services\ActivityLogger;
 
 class AuthController extends Controller
 {
@@ -53,6 +54,9 @@ class AuthController extends Controller
                 'role' => 'donor',
                 'registration_method' => 'email'
             ]);
+            
+            // Log to activity logs
+            ActivityLogger::logRegister($user, $r);
             
             return response()->json([
                 'message' => 'Registration successful',
@@ -261,6 +265,9 @@ class AuthController extends Controller
         $this->securityService->logAuthEvent('user_login', $user, [
             'login_method' => 'password'
         ]);
+        
+        // Log to activity logs
+        ActivityLogger::logLogin($user, $r);
 
         // Check for suspicious login patterns
         $this->securityService->checkSuspiciousLogin($user, $r->ip());
@@ -277,7 +284,12 @@ class AuthController extends Controller
     }
 
     public function logout(Request $r){
-        $r->user()->currentAccessToken()->delete();
+        $user = $r->user();
+        
+        // Log logout activity
+        ActivityLogger::logLogout($user, $r);
+        
+        $user->currentAccessToken()->delete();
         return response()->json(['message'=>'Logged out']);
     }
 
@@ -432,6 +444,9 @@ class AuthController extends Controller
             'updated_fields' => array_keys($validatedData),
             'user_role' => $user->role
         ]);
+
+        // Log to activity logs
+        ActivityLogger::logUpdateProfile($user, $r);
 
         // Return updated user with charity data if applicable
         $responseData = $user->fresh(); // Get fresh data from database

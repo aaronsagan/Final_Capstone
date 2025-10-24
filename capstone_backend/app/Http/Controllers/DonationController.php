@@ -6,6 +6,7 @@ use App\Models\{Donation, Charity, Campaign};
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use App\Services\NotificationService;
+use App\Services\ActivityLogger;
 
 class DonationController extends Controller
 {
@@ -51,6 +52,9 @@ class DonationController extends Controller
         if (($data['is_recurring'] ?? false) && ($data['recurring_type'] ?? null)) {
             $this->scheduleNextRecurringDonation($donation);
         }
+
+        // Log donation activity
+        ActivityLogger::logDonation($donation, $r);
 
         return response()->json($donation->load(['charity', 'campaign']), 201);
     }
@@ -105,6 +109,9 @@ class DonationController extends Controller
             'donated_at' => now(),
         ]);
 
+        // Log donation activity
+        ActivityLogger::logDonation($donation, $r);
+
         return response()->json([
             'message' => 'Thank you! Your proof of donation has been submitted for review.',
             'donation' => $donation->load(['charity', 'campaign'])
@@ -151,6 +158,9 @@ class DonationController extends Controller
             'status' => 'pending',
             'donated_at' => now(),
         ]);
+
+        // Log donation activity
+        ActivityLogger::logDonation($donation, $r);
 
         return response()->json([
             'message' => 'Thank you! Your donation has been submitted for review.',

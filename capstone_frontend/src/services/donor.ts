@@ -75,42 +75,52 @@ class DonorService {
    * Get donor dashboard statistics
    */
   async getDashboardStats(): Promise<DonorStats> {
-    // Fetch donations and calculate stats from them
-    const res = await this.api.get('/me/donations', { params: { per_page: 100 } });
-    const donations = res.data.data || res.data;
+    try {
+      // Fetch donations and calculate stats from them
+      const res = await this.api.get('/me/donations', { params: { per_page: 100 } });
+      const donations = res.data.data || res.data;
 
-    const isCompleted = (status: string) => status === 'completed' || status === 'confirmed';
-    const parseAmount = (amount: any) => {
-      if (typeof amount === 'string') {
-        const numStr = amount.replace(/[^\d.]/g, '');
-        return parseFloat(numStr) || 0;
-      }
-      return parseFloat(amount) || 0;
-    };
+      const isCompleted = (status: string) => status === 'completed' || status === 'confirmed';
+      const parseAmount = (amount: any) => {
+        if (typeof amount === 'string') {
+          const numStr = amount.replace(/[^\d.]/g, '');
+          return parseFloat(numStr) || 0;
+        }
+        return parseFloat(amount) || 0;
+      };
 
-    // Only include completed/confirmed donations for impact stats
-    const completedDonations = (donations || []).filter((d: any) => isCompleted(d.status));
+      // Only include completed/confirmed donations for impact stats
+      const completedDonations = (donations || []).filter((d: any) => isCompleted(d.status));
 
-    const total_donated = completedDonations.reduce((sum: number, d: any) => sum + parseAmount(d.amount), 0);
-    const charities_supported = new Set(completedDonations.map((d: any) => d.charity_id)).size;
-    const donations_made = completedDonations.length;
+      const total_donated = completedDonations.reduce((sum: number, d: any) => sum + parseAmount(d.amount), 0);
+      const charities_supported = new Set(completedDonations.map((d: any) => d.charity_id)).size;
+      const donations_made = completedDonations.length;
 
-    // Get first and latest donation dates among completed donations
-    const sortedCompleted = [...completedDonations].sort((a: any, b: any) =>
-      new Date(a.donated_at || a.created_at).getTime() - new Date(b.donated_at || b.created_at).getTime()
-    );
+      // Get first and latest donation dates among completed donations
+      const sortedCompleted = [...completedDonations].sort((a: any, b: any) =>
+        new Date(a.donated_at || a.created_at).getTime() - new Date(b.donated_at || b.created_at).getTime()
+      );
 
-    const first_donation_date = sortedCompleted[0]?.donated_at || sortedCompleted[0]?.created_at;
-    const latest_donation_date = sortedCompleted[sortedCompleted.length - 1]?.donated_at ||
-      sortedCompleted[sortedCompleted.length - 1]?.created_at;
+      const first_donation_date = sortedCompleted[0]?.donated_at || sortedCompleted[0]?.created_at;
+      const latest_donation_date = sortedCompleted[sortedCompleted.length - 1]?.donated_at ||
+        sortedCompleted[sortedCompleted.length - 1]?.created_at;
 
-    return {
-      total_donated,
-      charities_supported,
-      donations_made,
-      first_donation_date,
-      latest_donation_date
-    };
+      return {
+        total_donated,
+        charities_supported,
+        donations_made,
+        first_donation_date,
+        latest_donation_date
+      };
+    } catch (error: any) {
+      console.error('Failed to fetch dashboard stats:', error);
+      // Return empty stats if donations can't be fetched
+      return {
+        total_donated: 0,
+        charities_supported: 0,
+        donations_made: 0
+      };
+    }
   }
 
   /**
