@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { authService } from "@/services/auth";
+import { getCharityLogoUrl } from "@/lib/storage";
 import {
   Tooltip,
   TooltipContent,
@@ -187,9 +188,8 @@ export default function CharityCard({ charity, isFollowing = false, onFollowTogg
       <div className="relative h-56 overflow-hidden bg-gradient-to-br from-primary/10 to-secondary/10">
         <img
           src={
-            charity.logo_path
-              ? `${import.meta.env.VITE_API_URL}/storage/${charity.logo_path}`
-              : "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600"
+            getCharityLogoUrl(charity.logo_path) ||
+            "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600"
           }
           alt={charity.name}
           className={`w-full h-full object-cover transition-all duration-500 ${

@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { getStorageUrl } from "@/lib/storage";
 
 export default function DonorProfile() {
   const { user } = useAuth();
@@ -194,7 +195,7 @@ export default function DonorProfile() {
               {profileImage ? (
                 <img src={profileImage} alt="Profile" className="h-full w-full object-cover" />
               ) : user?.profile_image ? (
-                <img src={`${import.meta.env.VITE_API_URL}/storage/${user.profile_image}`} alt="Profile" className="h-full w-full object-cover" />
+                <img src={getStorageUrl(user.profile_image) || ""} alt="Profile" className="h-full w-full object-cover" />
               ) : (
                 <User className="h-12 w-12 text-muted-foreground" />
               )}

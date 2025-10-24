@@ -26,9 +26,11 @@ interface Campaign {
   current_amount: number;
   cover_image_path?: string;
   charity?: {
+    id?: number;
     name: string;
     logo_path?: string;
   };
+  charity_id?: number;
 }
 
 interface DonationChannel {
@@ -37,6 +39,10 @@ interface DonationChannel {
   label: string;
   is_active: boolean;
   details?: any;
+  account_name?: string;
+  account_number?: string;
+  qr_code_path?: string;
+  qr_code_url?: string;
 }
 
 export default function DonateToCampaign() {
@@ -47,6 +53,7 @@ export default function DonateToCampaign() {
   const [submitted, setSubmitted] = useState(false);
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [channels, setChannels] = useState<DonationChannel[]>([]);
+  const [selectedChannel, setSelectedChannel] = useState<DonationChannel | null>(null);
 
   const [formData, setFormData] = useState({
     donor_name: "",
@@ -63,8 +70,16 @@ export default function DonateToCampaign() {
 
   useEffect(() => {
     fetchCampaignDetails();
-    fetchDonationChannels();
   }, [campaignId]);
+
+  // Once campaign is loaded, fetch channels with charity fallback
+  useEffect(() => {
+    if (campaign) {
+      const chId = (campaign as any)?.charity?.id || campaign.charity_id;
+      console.log('🔍 Fetching channels for campaign:', campaignId, 'charity:', chId);
+      fetchDonationChannels(chId);
+    }
+  }, [campaign]);
 
   const fetchCampaignDetails = async () => {
     try {
@@ -81,15 +96,76 @@ export default function DonateToCampaign() {
     }
   };
 
-  const fetchDonationChannels = async () => {
+  const fetchDonationChannels = async (charityId?: number) => {
     try {
+      console.log('📡 Fetching campaign channels from:', buildApiUrl(`/campaigns/${campaignId}/donation-channels`));
       const response = await fetch(buildApiUrl(`/campaigns/${campaignId}/donation-channels`));
-      if (!response.ok) return;
+      if (!response.ok) {
+        console.warn('⚠️ Campaign channels endpoint failed:', response.status);
+        // Try charity fallback immediately
+        if (charityId) {
+          await fetchCharityChannelsFallback(charityId);
+        } else {
+          setChannels([]);
+        }
+        return;
+      }
       const data = await response.json();
-      const activeChannels = (data.data || data).filter((ch: DonationChannel) => ch.is_active);
-      setChannels(activeChannels);
+      console.log('📦 Campaign channels response:', data);
+      const list = (data.data || data) as DonationChannel[];
+      const activeChannels = list.filter((ch: any) => ch.is_active === true || ch.is_active === 1 || ch.is_active === '1');
+      console.log('✅ Active campaign channels:', activeChannels.length);
+      
+      if (activeChannels.length > 0) {
+        setChannels(activeChannels);
+        // Auto-select if only one
+        if (activeChannels.length === 1) {
+          setFormData((prev) => ({ ...prev, channel_used: activeChannels[0].label }));
+          setSelectedChannel(activeChannels[0]);
+        } else {
+          // Keep previous selection if it matches
+          const existing = activeChannels.find((c: DonationChannel) => c.label === formData.channel_used);
+          if (existing) setSelectedChannel(existing);
+        }
+      } else {
+        // No campaign channels, try charity fallback
+        console.log('🔄 No campaign channels, trying charity fallback...');
+        if (charityId) {
+          await fetchCharityChannelsFallback(charityId);
+        } else {
+          console.warn('⚠️ No charityId available for fallback');
+          setChannels([]);
+          setSelectedChannel(null);
+        }
+      }
     } catch (error) {
-      console.error("Error fetching donation channels:", error);
+      console.error("❌ Error fetching donation channels:", error);
+      setChannels([]);
+    }
+  };
+
+  const fetchCharityChannelsFallback = async (charityId: number) => {
+    try {
+      console.log('📡 Fetching charity channels from:', buildApiUrl(`/charities/${charityId}/donation-channels`));
+      const r2 = await fetch(buildApiUrl(`/charities/${charityId}/donation-channels`));
+      if (r2.ok) {
+        const d2 = await r2.json();
+        console.log('📦 Charity channels response:', d2);
+        const list2 = (d2.data || d2) as DonationChannel[];
+        const items2 = list2.filter((ch: any) => ch.is_active === true || ch.is_active === 1 || ch.is_active === '1');
+        console.log('✅ Active charity channels (fallback):', items2.length);
+        setChannels(items2);
+        if (items2.length === 1) {
+          setFormData((prev) => ({ ...prev, channel_used: items2[0].label }));
+          setSelectedChannel(items2[0]);
+        }
+      } else {
+        console.warn('⚠️ Charity channels endpoint failed:', r2.status);
+        setChannels([]);
+      }
+    } catch (err) {
+      console.error('❌ Error fetching charity channels:', err);
+      setChannels([]);
     }
   };
 
@@ -412,7 +488,11 @@ export default function DonateToCampaign() {
                         </Label>
                         <Select
                           value={formData.channel_used}
-                          onValueChange={(value) => setFormData({ ...formData, channel_used: value })}
+                          onValueChange={(value) => {
+                            setFormData({ ...formData, channel_used: value });
+                            const ch = channels.find((c) => c.label === value) || null;
+                            setSelectedChannel(ch);
+                          }}
                         >
                           <SelectTrigger className="h-11">
                             <SelectValue placeholder="Select payment method" />
@@ -433,6 +513,39 @@ export default function DonateToCampaign() {
                         </Select>
                       </div>
                     </div>
+
+                    {/* Selected Channel Details */}
+                    {selectedChannel && (
+                      <div className="rounded-xl border bg-muted/30 p-4">
+                        <div className="flex items-start gap-4">
+                          {(selectedChannel.qr_code_url || selectedChannel.qr_code_path) && (
+                            <img
+                              src={selectedChannel.qr_code_url || buildStorageUrl(selectedChannel.qr_code_path!)}
+                              alt="Payment QR Code"
+                              className="w-28 h-28 object-contain rounded-md bg-white border"
+                              loading="lazy"
+                            />
+                          )}
+                          <div className="flex-1 grid sm:grid-cols-2 gap-3">
+                            <div>
+                              <p className="text-xs text-muted-foreground">Account Name</p>
+                              <p className="font-semibold">{selectedChannel.account_name || '—'}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Account Number</p>
+                              <p className="font-mono font-semibold">{selectedChannel.account_number || '—'}</p>
+                            </div>
+                            <div className="sm:col-span-2">
+                              <p className="text-xs text-muted-foreground">Channel</p>
+                              <p className="font-medium">{selectedChannel.label} ({selectedChannel.type})</p>
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-3">
+                          Send your donation using the details above, then provide the amount and reference number below.
+                        </p>
+                      </div>
+                    )}
 
                     {/* Reference Number */}
                     <div className="space-y-2">

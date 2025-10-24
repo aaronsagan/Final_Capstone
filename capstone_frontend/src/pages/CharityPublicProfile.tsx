@@ -388,7 +388,7 @@ export default function CharityPublicProfile() {
             <div className="flex items-start gap-3 flex-1">
               <Avatar className="h-11 w-11 ring-2 ring-background shadow-sm">
                 <AvatarImage
-                  src={charity?.logo_path ? `${import.meta.env.VITE_API_URL}/storage/${charity.logo_path}` : ""}
+                  src={charity?.logo_path ? getStorageUrl(charity.logo_path) || "" : ""}
                 />
                 <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                   {charity?.name?.substring(0, 2).toUpperCase() || "CH"}
@@ -416,7 +416,7 @@ export default function CharityPublicProfile() {
             {update.media_urls && update.media_urls.length > 0 && (
               <div className={`grid gap-2 rounded-xl overflow-hidden ${update.media_urls.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
                 {update.media_urls.map((url, index) => (
-                  <img key={index} src={`${import.meta.env.VITE_API_URL}/storage/${url}`} alt={`Update media ${index + 1}`} className="rounded-lg w-full object-cover max-h-96 cursor-pointer hover:opacity-95 transition-opacity" />
+                  <img key={index} src={getStorageUrl(url) || ""} alt={`Update media ${index + 1}`} className="rounded-lg w-full object-cover max-h-96 cursor-pointer hover:opacity-95 transition-opacity" />
                 ))}
               </div>
             )}
@@ -551,7 +551,7 @@ export default function CharityPublicProfile() {
       <div className="relative">
         <div className="h-[300px] lg:h-[400px] w-full overflow-hidden bg-gradient-to-br from-primary/20 to-primary/5">
           {charity.banner_path ? (
-            <img src={`${import.meta.env.VITE_API_URL}/storage/${charity.banner_path}`} alt={`${charity.name} banner`} className="w-full h-full object-cover" />
+            <img src={getStorageUrl(charity.banner_path) || ""} alt={`${charity.name} banner`} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <Building2 className="h-24 w-24 text-muted-foreground/20" />
@@ -564,7 +564,7 @@ export default function CharityPublicProfile() {
           <div className="relative -mt-20 lg:-mt-24">
             <div className="flex flex-col lg:flex-row items-start lg:items-end gap-6">
               <Avatar className="h-32 w-32 lg:h-40 lg:w-40 ring-4 ring-background shadow-2xl">
-                <AvatarImage src={charity.logo_path ? `${import.meta.env.VITE_API_URL}/storage/${charity.logo_path}` : ""} />
+                <AvatarImage src={charity.logo_path ? getStorageUrl(charity.logo_path) || "" : ""} />
                 <AvatarFallback className="text-4xl font-bold bg-primary text-primary-foreground">
                   {charity.name.substring(0, 2).toUpperCase()}
                 </AvatarFallback>

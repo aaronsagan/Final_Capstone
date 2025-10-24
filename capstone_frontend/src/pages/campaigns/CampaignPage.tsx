@@ -1218,7 +1218,7 @@ export default function CampaignPage() {
 
               {/* Donation Channels - Show on Story & Supporters tabs */}
               {(activeTab === "story" || activeTab === "supporters") && (
-                <DonationChannelsCard campaignId={campaign.id} />
+                <DonationChannelsCard campaignId={campaign.id} charityId={campaign.charity.id} />
               )}
             </div>
           </div>

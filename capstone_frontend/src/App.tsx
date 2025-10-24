@@ -138,6 +138,8 @@ const App = () => (
               <Route index element={<DonorDashboard />} />
               <Route path="news-feed" element={<NewsFeed />} />
               <Route path="donate" element={<MakeDonation />} />
+              {/* Put campaign donate route BEFORE the generic donate/:charityId to avoid matching the wrong component */}
+              <Route path="donate/:campaignId" element={<DonateToCampaign />} />
               <Route path="donate/:charityId" element={<MakeDonation />} />
               <Route path="campaigns/:campaignId/donate" element={<DonateToCampaign />} />
               <Route path="history" element={<DonationHistory />} />

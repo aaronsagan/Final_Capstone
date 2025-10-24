@@ -183,7 +183,7 @@ export default function DonorDashboardHome() {
           </h2>
           <div className="grid gap-6 md:grid-cols-3">
             {/* Total Donated Card */}
-            <Card className="group hover:shadow-xl transition-all duration-300 border-border/40 hover:border-primary/50">
+            <Card className="group hover:shadow-xl transition-all duration-300 border-2 border-green-200 bg-green-50 dark:bg-green-950/30">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Donated</CardTitle>
                 <div className="p-2 rounded-lg bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
@@ -201,7 +201,7 @@ export default function DonorDashboardHome() {
             </Card>
 
             {/* Charities Supported Card */}
-            <Card className="group hover:shadow-xl transition-all duration-300 border-border/40 hover:border-primary/50">
+            <Card className="group hover:shadow-xl transition-all duration-300 border-2 border-blue-200 bg-blue-50 dark:bg-blue-950/30">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Charities Supported</CardTitle>
                 <div className="p-2 rounded-lg bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
@@ -219,7 +219,7 @@ export default function DonorDashboardHome() {
             </Card>
 
             {/* Donations Made Card */}
-            <Card className="group hover:shadow-xl transition-all duration-300 border-border/40 hover:border-primary/50">
+            <Card className="group hover:shadow-xl transition-all duration-300 border-2 border-purple-200 bg-purple-50 dark:bg-purple-950/30">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Donations Made</CardTitle>
                 <div className="p-2 rounded-lg bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
@@ -345,7 +345,7 @@ export default function DonorDashboardHome() {
           ) : updates.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2">
               {updates.map((update) => (
-                <Card key={update.id} className="group hover:shadow-xl transition-all duration-300 overflow-hidden">
+                <Card key={update.id} className="group hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-blue-200 bg-blue-50 dark:bg-blue-950/30">
                   <CardHeader className="pb-3">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12 ring-2 ring-background">
@@ -398,7 +398,7 @@ export default function DonorDashboardHome() {
               ))}
             </div>
           ) : (
-            <Card className="p-12 text-center">
+            <Card className="p-12 text-center border-2 border-blue-200 bg-blue-50 dark:bg-blue-950/30">
               <MessageCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <p className="text-muted-foreground mb-4">
                 No updates yet from charities you support.
@@ -438,7 +438,7 @@ export default function DonorDashboardHome() {
               ))}
             </div>
           ) : (
-            <Card className="p-12 text-center">
+            <Card className="p-12 text-center border-2 border-purple-200 bg-purple-50 dark:bg-purple-950/30">
               <Target className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <p className="text-muted-foreground mb-4">
                 No campaign suggestions available at the moment.

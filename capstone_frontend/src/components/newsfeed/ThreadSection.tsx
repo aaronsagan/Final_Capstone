@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Heart, MessageCircle, Share2, CheckCircle2, ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { getCharityLogoUrl, getStorageUrl } from "@/lib/storage";
 
 interface ThreadUpdate {
   id: number;
@@ -82,11 +81,7 @@ export default function ThreadSection({
                 <div className="flex items-start gap-3">
                   <Avatar className="w-8 h-8 shrink-0">
                     <AvatarImage
-                      src={
-                        thread.charity?.logo_path
-                          ? `${API_URL}/storage/${thread.charity.logo_path}`
-                          : undefined
-                      }
+                      src={getCharityLogoUrl(thread.charity?.logo_path) || undefined}
                     />
                     <AvatarFallback className="text-xs">
                       {thread.charity?.name.substring(0, 2).toUpperCase()}
@@ -117,7 +112,7 @@ export default function ThreadSection({
                     {thread.media_urls.map((url, idx) => (
                       <img
                         key={idx}
-                        src={`${API_URL}/storage/${url}`}
+                        src={getStorageUrl(url) || ""}
                         alt={`Thread media ${idx + 1}`}
                         className="rounded-lg w-full h-auto max-h-48 object-cover"
                       />

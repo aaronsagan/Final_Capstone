@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Heart, Upload, CheckCircle, Gift, Building2, Target, CreditCard, FileText, Sparkles, TrendingUp, Shield } from "lucide-react";
+import { Heart, Upload, CheckCircle, Gift, Building2, Target, CreditCard, FileText, Sparkles, TrendingUp, Shield, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,25 +99,70 @@ export default function MakeDonation() {
 
   const fetchDonationChannels = async (campaignId: number) => {
     try {
+      console.log('🔍 Fetching donation channels for campaign:', campaignId);
       const res = await fetch(`${API_URL}/campaigns/${campaignId}/donation-channels`);
-      if (!res.ok) return;
+      console.log('📡 Response status:', res.status);
+      
+      if (!res.ok) {
+        console.warn('⚠️ Failed to fetch campaign channels, status:', res.status);
+        // Fallback to charity-level channels
+        if (formData.charityId) {
+          console.log('🔄 Falling back to charity-level channels');
+          await fetchCharityDonationChannels(parseInt(formData.charityId, 10));
+        }
+        return;
+      }
+      
       const data = await res.json();
+      console.log('📦 Raw channel data:', data);
       const list = (data.data || data || []).filter((c: any) => c.is_active);
-      setChannels(list);
+      console.log('✅ Active channels found:', list.length, list);
+      
+      if (list.length === 0) {
+        console.log('⚠️ No campaign channels found, trying charity-level channels');
+        // Fallback to charity-level channels if campaign has none
+        if (formData.charityId) {
+          await fetchCharityDonationChannels(parseInt(formData.charityId, 10));
+        }
+      } else {
+        setChannels(list);
+      }
     } catch (e) {
-      // silent fail
+      console.error('❌ Error fetching donation channels:', e);
+      // Fallback to charity-level channels on error
+      if (formData.charityId) {
+        console.log('🔄 Falling back to charity-level channels due to error');
+        await fetchCharityDonationChannels(parseInt(formData.charityId, 10));
+      }
     }
   };
 
   const fetchCharityDonationChannels = async (charityId: number) => {
     try {
+      console.log('🏢 Fetching charity-level donation channels for charity:', charityId);
       const res = await fetch(`${API_URL}/charities/${charityId}/donation-channels`);
-      if (!res.ok) return;
+      console.log('📡 Charity channels response status:', res.status);
+      
+      if (!res.ok) {
+        console.warn('⚠️ Failed to fetch charity channels, status:', res.status);
+        setChannels([]);
+        toast.error('No donation channels available for this charity');
+        return;
+      }
+      
       const data = await res.json();
+      console.log('📦 Raw charity channel data:', data);
       const list = (data.data || data || []).filter((c: any) => c.is_active);
+      console.log('✅ Active charity channels found:', list.length, list);
+      
+      if (list.length === 0) {
+        toast.warning('No active donation channels available');
+      }
       setChannels(list);
     } catch (e) {
-      // silent fail
+      console.error('❌ Error fetching charity donation channels:', e);
+      setChannels([]);
+      toast.error('Unable to load donation channels');
     }
   };
 
@@ -618,6 +663,14 @@ export default function MakeDonation() {
                   )}
                 </SelectContent>
               </Select>
+              {channels.length === 0 && (
+                <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    No payment channels are configured for this {formData.campaignId === "direct" ? "charity" : "campaign"}. Please contact the charity to set up donation channels.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Reference Number */}

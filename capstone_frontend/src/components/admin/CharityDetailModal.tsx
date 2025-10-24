@@ -82,6 +82,10 @@ export const CharityDetailModal = ({ charity, open, onClose, onAction }: Charity
   const [rejectingDoc, setRejectingDoc] = useState<Document | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [processingDoc, setProcessingDoc] = useState<number | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [previewType, setPreviewType] = useState<string>("");
+  const [loadingPreview, setLoadingPreview] = useState<boolean>(false);
 
   useEffect(() => {
     if (open && charity) {
@@ -218,9 +222,33 @@ export const CharityDetailModal = ({ charity, open, onClose, onAction }: Charity
     }
   };
 
-  const handleViewDocument = (doc: Document) => {
-    const url = `${import.meta.env.VITE_API_URL}/storage/${doc.file_path}`;
-    window.open(url, '_blank');
+  const handleViewDocument = async (doc: Document) => {
+    try {
+      setLoadingPreview(true);
+      setPreviewDoc(doc);
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/documents/${doc.id}/view`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        toast.error('Failed to load document preview');
+        setPreviewDoc(null);
+        return;
+      }
+      const data = await res.json();
+      const filePath = data.fileUrl || doc.file_path;
+      const extension = (data.fileType || filePath.split('.').pop() || '').toLowerCase();
+      setPreviewType(extension);
+      const apiBase = import.meta.env.VITE_API_URL as string;
+      const originBase = apiBase.replace(/\/?api\/?$/, '');
+      const url = `${originBase}/storage/${filePath}`;
+      setPreviewUrl(url);
+    } catch (e) {
+      toast.error('Failed to load document preview');
+      setPreviewDoc(null);
+    } finally {
+      setLoadingPreview(false);
+    }
   };
 
   const getDocTypeLabel = (docType: string) => {
@@ -666,6 +694,57 @@ export const CharityDetailModal = ({ charity, open, onClose, onAction }: Charity
               <XCircle className="h-4 w-4 mr-2" />
               Reject Document
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Dialog */}
+      <Dialog open={!!previewDoc} onOpenChange={(isOpen) => {
+        if (!isOpen) {
+          setPreviewDoc(null);
+          setPreviewUrl("");
+          setPreviewType("");
+        }
+      }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby="preview-document-description">
+          <DialogHeader>
+            <DialogTitle>Preview Document</DialogTitle>
+            <DialogDescription id="preview-document-description">
+              {previewDoc ? `Viewing: ${previewDoc.doc_type}` : 'Document preview'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="min-h-[400px] flex items-center justify-center bg-muted/30 rounded">
+            {loadingPreview ? (
+              <div className="w-full p-4 space-y-3">
+                <Skeleton className="h-8 w-40" />
+                <Skeleton className="h-[360px] w-full" />
+              </div>
+            ) : previewUrl ? (
+              previewType === 'pdf' ? (
+                <iframe
+                  src={previewUrl}
+                  title="Document Preview"
+                  className="w-full h-[70vh] border rounded"
+                />
+              ) : (
+                <img src={previewUrl} alt="Document" className="max-h-[70vh] w-auto object-contain" />
+              )
+            ) : (
+              <p className="text-sm text-muted-foreground">No preview available</p>
+            )}
+          </div>
+          <div className="flex justify-end gap-2">
+            {previewDoc && (
+              <Button size="sm" variant="outline" onClick={() => handleDownloadDocument(previewDoc)}>
+                <Download className="h-3 w-3 mr-1" />
+                Download
+              </Button>
+            )}
+            <Button size="sm" variant="outline" onClick={() => {
+              setPreviewDoc(null);
+              setPreviewUrl("");
+              setPreviewType("");
+            }}>Close</Button>
           </div>
         </DialogContent>
       </Dialog>

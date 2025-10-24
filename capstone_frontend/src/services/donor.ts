@@ -76,24 +76,34 @@ class DonorService {
    */
   async getDashboardStats(): Promise<DonorStats> {
     // Fetch donations and calculate stats from them
-    const res = await this.api.get('/me/donations');
+    const res = await this.api.get('/me/donations', { params: { per_page: 100 } });
     const donations = res.data.data || res.data;
-    
-    // Calculate stats from donations
-    const completedDonations = donations.filter((d: any) => d.status === 'completed');
-    const total_donated = completedDonations.reduce((sum: number, d: any) => sum + (d.amount || 0), 0);
-    const charities_supported = new Set(donations.map((d: any) => d.charity_id)).size;
-    const donations_made = donations.length;
-    
-    // Get first and latest donation dates
-    const sortedDonations = [...donations].sort((a: any, b: any) => 
+
+    const isCompleted = (status: string) => status === 'completed' || status === 'confirmed';
+    const parseAmount = (amount: any) => {
+      if (typeof amount === 'string') {
+        const numStr = amount.replace(/[^\d.]/g, '');
+        return parseFloat(numStr) || 0;
+      }
+      return parseFloat(amount) || 0;
+    };
+
+    // Only include completed/confirmed donations for impact stats
+    const completedDonations = (donations || []).filter((d: any) => isCompleted(d.status));
+
+    const total_donated = completedDonations.reduce((sum: number, d: any) => sum + parseAmount(d.amount), 0);
+    const charities_supported = new Set(completedDonations.map((d: any) => d.charity_id)).size;
+    const donations_made = completedDonations.length;
+
+    // Get first and latest donation dates among completed donations
+    const sortedCompleted = [...completedDonations].sort((a: any, b: any) =>
       new Date(a.donated_at || a.created_at).getTime() - new Date(b.donated_at || b.created_at).getTime()
     );
-    
-    const first_donation_date = sortedDonations[0]?.donated_at || sortedDonations[0]?.created_at;
-    const latest_donation_date = sortedDonations[sortedDonations.length - 1]?.donated_at || 
-                                  sortedDonations[sortedDonations.length - 1]?.created_at;
-    
+
+    const first_donation_date = sortedCompleted[0]?.donated_at || sortedCompleted[0]?.created_at;
+    const latest_donation_date = sortedCompleted[sortedCompleted.length - 1]?.donated_at ||
+      sortedCompleted[sortedCompleted.length - 1]?.created_at;
+
     return {
       total_donated,
       charities_supported,

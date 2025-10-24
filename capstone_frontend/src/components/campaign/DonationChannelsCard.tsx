@@ -18,9 +18,10 @@ interface DonationChannel {
 
 interface DonationChannelsCardProps {
   campaignId: number;
+  charityId?: number;
 }
 
-export function DonationChannelsCard({ campaignId }: DonationChannelsCardProps) {
+export function DonationChannelsCard({ campaignId, charityId }: DonationChannelsCardProps) {
   const [channels, setChannels] = useState<DonationChannel[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -28,14 +29,31 @@ export function DonationChannelsCard({ campaignId }: DonationChannelsCardProps) 
 
   useEffect(() => {
     fetchChannels();
-  }, [campaignId]);
+  }, [campaignId, charityId]);
 
   const fetchChannels = async () => {
     try {
       const response = await fetch(buildApiUrl(`/campaigns/${campaignId}/donation-channels`));
       if (response.ok) {
         const data = await response.json();
-        setChannels(data);
+        const items = Array.isArray(data) ? data : (data?.data ?? []);
+        if (items.length > 0) {
+          setChannels(items);
+        } else if (charityId) {
+          // Fallback: use charity-wide channels if campaign has none
+          try {
+            const r2 = await fetch(buildApiUrl(`/charities/${charityId}/donation-channels`));
+            if (r2.ok) {
+              const d2 = await r2.json();
+              const items2 = Array.isArray(d2) ? d2 : (d2?.data ?? []);
+              setChannels(items2);
+            } else {
+              setChannels([]);
+            }
+          } catch {
+            setChannels([]);
+          }
+        }
       }
     } catch (error) {
       console.error("Error fetching donation channels:", error);
