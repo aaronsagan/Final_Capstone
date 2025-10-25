@@ -272,7 +272,7 @@ const DonationsInboxPage = () => {
                         </div>
                       </TableCell>
                       <TableCell className="font-medium">
-                        ${donation.amount.toLocaleString()}
+                        ${Number(donation.amount).toLocaleString()}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">{donation.method}</Badge>

@@ -121,10 +121,18 @@ export default function DonationsPage() {
   };
 
   // Calculate stats
+  const parseAmount = (amount: any) => {
+    if (typeof amount === 'string') {
+      const numStr = amount.replace(/[^\d.\-]/g, '');
+      return parseFloat(numStr) || 0;
+    }
+    return typeof amount === 'number' ? amount : parseFloat(amount) || 0;
+  };
+
   const stats = {
     totalReceived: donations
       .filter(d => d.status === 'completed')
-      .reduce((sum, d) => sum + d.amount, 0),
+      .reduce((sum, d) => sum + parseAmount(d.amount), 0),
     totalThisMonth: donations
       .filter(d => {
         const donationDate = new Date(d.donated_at);
@@ -133,12 +141,12 @@ export default function DonationsPage() {
                donationDate.getFullYear() === now.getFullYear() &&
                d.status === 'completed';
       })
-      .reduce((sum, d) => sum + d.amount, 0),
+      .reduce((sum, d) => sum + parseAmount(d.amount), 0),
     pendingCount: donations.filter(d => d.status === 'pending').length,
     confirmedCount: donations.filter(d => d.status === 'completed').length,
     rejectedCount: donations.filter(d => d.status === 'rejected').length,
     averageDonation: donations.length > 0 
-      ? donations.reduce((sum, d) => sum + d.amount, 0) / donations.length 
+      ? donations.reduce((sum, d) => sum + parseAmount(d.amount), 0) / donations.length 
       : 0,
   };
 

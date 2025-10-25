@@ -23,13 +23,52 @@ class VerificationController extends Controller
     }
 
     public function getAllCharities(){
-        return Charity::with('owner')
-            ->latest()
-            ->paginate(20);
+        $request = request();
+        $query = Charity::with('owner')->latest();
+
+        // Optional status filter: approved | pending | rejected
+        if ($request->has('status') && $request->status !== 'all') {
+            $query->where('verification_status', $request->status);
+        }
+
+        // Optional text search by name or contact email
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('contact_email', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $perPage = (int) ($request->input('per_page', 20));
+        return $query->paginate($perPage);
     }
 
     public function getUsers(){
-        return \App\Models\User::latest()->paginate(20);
+        $request = request();
+        $query = \App\Models\User::query()->latest();
+
+        // Optional role filter: donor | charity_admin | admin
+        if ($request->has('role') && $request->role !== 'all') {
+            $query->where('role', $request->role);
+        }
+
+        // Optional status filter: active | suspended
+        if ($request->has('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        // Optional search by name or email
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('email', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $perPage = (int) ($request->input('per_page', 20));
+        return $query->paginate($perPage);
     }
 
     public function activateUser(\Illuminate\Http\Request $r, \App\Models\User $user){
@@ -179,25 +218,50 @@ class VerificationController extends Controller
     }
 
     public function getAllDonations(Request $request){
-        $query = \App\Models\Donation::with(['donor', 'campaign.charity']);
+        $query = \App\Models\Donation::with(['donor','charity','campaign.charity']);
 
         if ($request->has('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
         }
 
-        if ($request->has('search')) {
+        if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->whereHas('donor', function($q) use ($search) {
-                    $q->where('name', 'LIKE', "%{$search}%");
+                    $q->where('name', 'LIKE', "%{$search}%")
+                      ->orWhere('email', 'LIKE', "%{$search}%");
                 })
                 ->orWhereHas('campaign', function($q) use ($search) {
                     $q->where('title', 'LIKE', "%{$search}%");
+                })
+                ->orWhereHas('charity', function($q) use ($search) {
+                    $q->where('name', 'LIKE', "%{$search}%");
                 });
             });
         }
 
-        return $query->latest()->paginate(20);
+        $paginated = $query->orderByDesc('created_at')->paginate(20);
+
+        // Transform to match Transactions.tsx expected shape
+        $transformed = $paginated->getCollection()->map(function($d){
+            return [
+                'id' => $d->id,
+                'donor_name' => $d->donor->name ?? ($d->donor_name ?? 'Anonymous'),
+                'charity_name' => $d->campaign->charity->name ?? $d->charity->name ?? 'N/A',
+                'campaign_title' => $d->campaign->title ?? null,
+                'amount' => $d->amount,
+                'status' => $d->status,
+                'created_at' => optional($d->created_at)->toISOString() ?? now()->toISOString(),
+            ];
+        });
+
+        return response()->json([
+            'data' => $transformed,
+            'current_page' => $paginated->currentPage(),
+            'last_page' => $paginated->lastPage(),
+            'per_page' => $paginated->perPage(),
+            'total' => $paginated->total(),
+        ]);
     }
 
     public function getComplianceAudits(Request $request){
@@ -206,22 +270,132 @@ class VerificationController extends Controller
     }
 
     public function getFundsSummary(Request $request){
-        // Placeholder - return empty for now
+        $range = $request->input('range','30d');
+        $startDate = match($range){
+            '7d' => now()->subDays(7),
+            '90d' => now()->subDays(90),
+            default => now()->subDays(30),
+        };
+
+        $inflow = \App\Models\Donation::where('status','completed')
+            ->where('created_at','>=',$startDate)
+            ->sum('amount');
+
+        $outflow = \App\Models\FundUsageLog::where('spent_at','>=',$startDate)->sum('amount');
+
+        $campaignsTracked = \App\Models\Campaign::count();
+
         return response()->json([
-            'total_funds' => 0,
-            'allocated' => 0,
-            'pending' => 0,
-            'completed' => 0
+            'total_inflow' => (float) $inflow,
+            'total_outflow' => (float) $outflow,
+            'campaigns_tracked' => $campaignsTracked,
         ]);
     }
 
     public function getFundsFlows(Request $request){
-        // Placeholder - return empty for now
-        return response()->json([]);
+        $range = $request->input('range','30d');
+        $startDate = match($range){
+            '7d' => now()->subDays(7),
+            '90d' => now()->subDays(90),
+            default => now()->subDays(30),
+        };
+
+        // Build daily buckets
+        $period = new \DatePeriod($startDate->copy()->startOfDay(), new \DateInterval('P1D'), now()->copy()->addDay()->startOfDay());
+
+        $donations = \App\Models\Donation::where('status','completed')
+            ->whereBetween('created_at', [$startDate, now()])
+            ->get()
+            ->groupBy(fn($d)=>$d->created_at->format('Y-m-d'));
+
+        $usages = \App\Models\FundUsageLog::whereBetween('spent_at', [$startDate, now()])
+            ->get()
+            ->groupBy(fn($u)=>optional($u->spent_at)->format('Y-m-d'));
+
+        $series = [];
+        foreach ($period as $date) {
+            $key = $date->format('Y-m-d');
+            $series[] = [
+                'label' => $date->format('M d'),
+                'inflow' => (float) ($donations[$key]->sum('amount') ?? 0),
+                'outflow' => (float) ($usages[$key]->sum('amount') ?? 0),
+            ];
+        }
+
+        return response()->json($series);
     }
 
     public function getFundsAnomalies(Request $request){
-        // Placeholder - return empty for now
-        return response()->json([]);
+        $range = $request->input('range','30d');
+        $startDate = match($range){
+            '7d' => now()->subDays(7),
+            '90d' => now()->subDays(90),
+            default => now()->subDays(30),
+        };
+
+        // Simple heuristic demo anomalies: large donations or large expenses
+        $largeDonations = \App\Models\Donation::with('campaign')
+            ->where('status','completed')
+            ->where('amount','>=',10000)
+            ->where('created_at','>=',$startDate)
+            ->get()
+            ->map(function($d){
+                return [
+                    'id' => $d->id,
+                    'type' => 'large_donation',
+                    'campaign' => $d->campaign->title ?? 'General',
+                    'severity' => 'medium',
+                    'message' => 'Large single donation detected: ₱'.number_format((float)$d->amount,2),
+                    'timestamp' => $d->created_at->toISOString(),
+                ];
+            });
+
+        $largeExpenses = \App\Models\FundUsageLog::with('campaign')
+            ->where('amount','>=',10000)
+            ->where('spent_at','>=',$startDate)
+            ->get()
+            ->map(function($u){
+                return [
+                    'id' => 100000 + $u->id,
+                    'type' => 'large_outflow',
+                    'campaign' => $u->campaign->title ?? 'General',
+                    'severity' => 'high',
+                    'message' => 'Large fund usage recorded: ₱'.number_format((float)$u->amount,2).' ('.$u->category.')',
+                    'timestamp' => optional($u->spent_at)->toISOString() ?? now()->toISOString(),
+                ];
+            });
+
+        return response()->json($largeDonations->merge($largeExpenses)->values());
+    }
+
+    public function exportDonations(Request $request)
+    {
+        $request->merge(['per_page' => 100000]);
+        $data = $this->getAllDonations($request)->getData(true);
+
+        $filename = 'donations_' . now()->format('Y-m-d_His') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"$filename\"",
+        ];
+
+        $callback = function() use ($data) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['ID','Donor','Charity','Campaign','Amount','Status','Date']);
+            foreach (($data['data'] ?? []) as $row) {
+                fputcsv($file, [
+                    $row['id'],
+                    $row['donor_name'],
+                    $row['charity_name'],
+                    $row['campaign_title'] ?? '-',
+                    $row['amount'],
+                    $row['status'],
+                    $row['created_at'],
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }

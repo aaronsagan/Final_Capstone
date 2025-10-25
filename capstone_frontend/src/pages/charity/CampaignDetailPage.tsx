@@ -189,7 +189,7 @@ const CampaignDetailPage = () => {
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Progress</span>
               <span className="font-medium">
-                ${campaign.raised.toLocaleString()} / ${campaign.goal.toLocaleString()}
+                ₱{Number(campaign.raised).toLocaleString()} / ₱{Number(campaign.goal).toLocaleString()}
               </span>
             </div>
             <Progress value={progress} className="h-3" />
@@ -322,7 +322,7 @@ const CampaignDetailPage = () => {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium">${donation.amount.toLocaleString()}</p>
+                    <p className="font-medium">₱{Number(donation.amount).toLocaleString()}</p>
                     <Badge
                       variant="outline"
                       className={

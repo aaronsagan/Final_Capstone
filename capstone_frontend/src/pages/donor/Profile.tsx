@@ -65,7 +65,14 @@ export default function Profile() {
         
         // Calculate stats
         const completed = donations.filter(d => d.status === 'completed');
-        const totalDonated = completed.reduce((sum, d) => sum + d.amount, 0);
+        const parseAmount = (amount: any) => {
+          if (typeof amount === 'string') {
+            const numStr = amount.replace(/[^\d.\-]/g, '');
+            return parseFloat(numStr) || 0;
+          }
+          return typeof amount === 'number' ? amount : parseFloat(amount) || 0;
+        };
+        const totalDonated = completed.reduce((sum, d) => sum + parseAmount(d.amount), 0);
         const campaignsSupported = new Set(donations.map(d => d.campaign?.id).filter(Boolean)).size;
         const charitiesSupported = new Set(donations.map(d => d.charity.id)).size;
         
@@ -84,13 +91,13 @@ export default function Profile() {
         completed.forEach(d => {
           const existing = charityMap.get(d.charity.id);
           if (existing) {
-            existing.total_donated += d.amount;
+            existing.total_donated += parseAmount(d.amount);
           } else {
             charityMap.set(d.charity.id, {
               id: d.charity.id,
               name: d.charity.name,
               logo_path: d.charity.logo_path,
-              total_donated: d.amount,
+              total_donated: parseAmount(d.amount),
             });
           }
         });

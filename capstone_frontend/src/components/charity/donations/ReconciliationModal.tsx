@@ -160,7 +160,7 @@ export default function ReconciliationModal({
                           </div>
                           <div className="mt-2 text-sm">
                             <p className="font-bold text-primary">
-                              ₱{donation.amount.toLocaleString()}
+                              ₱{Number(donation.amount).toLocaleString()}
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {new Date(donation.donated_at).toLocaleDateString()}
@@ -222,7 +222,7 @@ export default function ReconciliationModal({
                           </div>
                           <div className="mt-2 text-sm">
                             <p className="font-bold text-primary">
-                              ₱{transaction.amount.toLocaleString()}
+                              ₱{Number(transaction.amount).toLocaleString()}
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {new Date(transaction.date).toLocaleDateString()}
@@ -276,14 +276,14 @@ export default function ReconciliationModal({
                               Donation #{donation?.id.toString().padStart(6, '0')}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              ₱{donation?.amount.toLocaleString()}
+                              ₱{donation ? Number(donation.amount).toLocaleString() : ''}
                             </p>
                           </div>
                           <Link2 className="h-4 w-4 text-green-600" />
                           <div className="flex-1">
                             <p className="text-sm font-medium">{transaction?.id}</p>
                             <p className="text-xs text-muted-foreground">
-                              ₱{transaction?.amount.toLocaleString()}
+                              ₱{transaction ? Number(transaction.amount).toLocaleString() : ''}
                             </p>
                           </div>
                         </div>

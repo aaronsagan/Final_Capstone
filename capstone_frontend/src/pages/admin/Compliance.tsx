@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ShieldAlert, RefreshCw, Eye, CheckCircle, XCircle, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -28,6 +29,7 @@ export default function Compliance() {
   const [search, setSearch] = useState("");
   const [notes, setNotes] = useState("");
   const [selected, setSelected] = useState<AuditItem | null>(null);
+  const [open, setOpen] = useState(false);
 
   const apiBase = import.meta.env.VITE_API_URL;
   const getToken = () => localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
@@ -70,6 +72,7 @@ export default function Compliance() {
       toast.success(`Audit ${action}d`);
       setSelected(null);
       setNotes("");
+      setOpen(false);
       fetchItems();
     } catch {
       toast.error(`Failed to ${action}`);
@@ -172,11 +175,11 @@ export default function Compliance() {
                   </div>
                 </div>
                 <div className="mt-3 flex gap-2">
-                  <Button size="sm" variant="outline" onClick={()=>setSelected(it)} className="transition-all duration-200 hover:scale-105 hover:bg-blue-50 dark:hover:bg-blue-950"><Eye className="h-4 w-4 mr-1"/>Review</Button>
+                  <Button size="sm" variant="outline" onClick={()=>{ setSelected(it); setNotes(""); setOpen(true); }} className="transition-all duration-200 hover:scale-105 hover:bg-blue-50 dark:hover:bg-blue-950"><Eye className="h-4 w-4 mr-1"/>Review</Button>
                   {it.status === 'pending' && (
                     <>
-                      <Button size="sm" onClick={()=>{ setSelected(it); setNotes(''); act('approve'); }} className="transition-all duration-200 hover:scale-105 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"><CheckCircle className="h-4 w-4 mr-1"/>Approve</Button>
-                      <Button size="sm" variant="destructive" onClick={()=>{ setSelected(it); act('reject'); }} className="transition-all duration-200 hover:scale-105"><XCircle className="h-4 w-4 mr-1"/>Reject</Button>
+                      <Button size="sm" onClick={()=>{ setSelected(it); setNotes(''); setOpen(true); }} className="transition-all duration-200 hover:scale-105 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"><CheckCircle className="h-4 w-4 mr-1"/>Approve</Button>
+                      <Button size="sm" variant="destructive" onClick={()=>{ setSelected(it); setOpen(true); }} className="transition-all duration-200 hover:scale-105"><XCircle className="h-4 w-4 mr-1"/>Reject</Button>
                     </>
                   )}
                 </div>
@@ -184,17 +187,36 @@ export default function Compliance() {
             ))}
           </div>
 
-          {selected && (
-            <div className="mt-6 border rounded-lg p-4">
-              <div className="font-medium mb-2">Add Review Notes for {selected.charity_name} ({selected.period})</div>
-              <Textarea value={notes} onChange={(e)=>setNotes(e.target.value)} rows={3} placeholder="Enter approval/rejection notes" />
-              <div className="mt-2 flex gap-2 justify-end">
-                <Button variant="outline" onClick={()=> setSelected(null)}>Cancel</Button>
+          <Dialog open={open} onOpenChange={(v)=>{ setOpen(v); if(!v){ setSelected(null); setNotes(''); } }}>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Review Audit</DialogTitle>
+                <DialogDescription>View submission details and approve or reject with notes.</DialogDescription>
+              </DialogHeader>
+              {selected && (
+                <div className="space-y-3">
+                  <div>
+                    <div className="font-medium">{selected.charity_name}</div>
+                    <div className="text-sm text-muted-foreground">Period: {selected.period}</div>
+                    <div className="mt-1">
+                      <Badge variant={selected.status === 'pending' ? 'secondary' : selected.status==='approved' ? 'default' : 'destructive'}>{selected.status}</Badge>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {(selected.files || []).map((f, idx) => (
+                      <a key={idx} href={f.url} target="_blank" className="text-xs underline">View {f.label}</a>
+                    ))}
+                  </div>
+                  <Textarea value={notes} onChange={(e)=>setNotes(e.target.value)} rows={4} placeholder="Enter approval/rejection notes" />
+                </div>
+              )}
+              <DialogFooter>
+                <Button variant="outline" onClick={()=> setOpen(false)}>Close</Button>
                 <Button onClick={()=> act('approve')}>Approve</Button>
                 <Button variant="destructive" onClick={()=> act('reject')}>Reject</Button>
-              </div>
-            </div>
-          )}
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
       </motion.div>

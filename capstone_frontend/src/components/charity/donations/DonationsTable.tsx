@@ -77,7 +77,7 @@ export default function DonationsTable({
         comparison = new Date(a.donated_at).getTime() - new Date(b.donated_at).getTime();
         break;
       case 'amount':
-        comparison = a.amount - b.amount;
+        comparison = Number(a.amount) - Number(b.amount);
         break;
       case 'donor':
         comparison = (a.donor?.name || '').localeCompare(b.donor?.name || '');
@@ -284,7 +284,7 @@ export default function DonationsTable({
                       )}
                     </TableCell>
                     <TableCell className="font-bold text-primary">
-                      ₱{donation.amount.toLocaleString()}
+                      ₱{Number(donation.amount).toLocaleString()}
                     </TableCell>
                     <TableCell className="text-sm">
                       {new Date(donation.donated_at).toLocaleDateString('en-US', {

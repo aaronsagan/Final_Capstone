@@ -169,7 +169,7 @@ export default function DonationDetailsModal({
               <div className="p-4 bg-muted/50 rounded-lg">
                 <Label className="text-xs text-muted-foreground">Amount</Label>
                 <p className="text-2xl font-bold text-primary">
-                  ₱{donation.amount.toLocaleString()}
+                  ₱{Number(donation.amount).toLocaleString()}
                 </p>
               </div>
               <div className="p-4 bg-muted/50 rounded-lg">

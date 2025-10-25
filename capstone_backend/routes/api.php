@@ -7,7 +7,7 @@ use App\Http\Controllers\{
 use App\Models\Charity;
 use App\Models\Campaign;
 use App\Models\CampaignUpdate;
-use App\Http\Controllers\Admin\{VerificationController, AdminActionLogController, DocumentVerificationController};
+use App\Http\Controllers\Admin\{VerificationController, AdminActionLogController, ComplianceController};
 
 // Health
 Route::get('/ping', fn () => ['ok' => true, 'time' => now()->toDateTimeString()]);
@@ -264,10 +264,14 @@ Route::middleware(['auth:sanctum','role:admin'])->group(function(){
   Route::get('/admin/users/{user}/donations', [VerificationController::class,'getUserDonations']);
   Route::get('/admin/user-activity-logs', [VerificationController::class,'getUserActivityLogs']);
   Route::get('/admin/donations', [VerificationController::class,'getAllDonations']);
-  Route::get('/admin/compliance/audits', [VerificationController::class,'getComplianceAudits']);
+  // Compliance & Audits (Admin)
+  Route::get('/admin/compliance/audits', [ComplianceController::class,'audits']);
+  Route::patch('/admin/compliance/audits/{id}', [ComplianceController::class,'updateAudit']);
+  Route::get('/admin/compliance/audits/export', [ComplianceController::class,'exportAudits']);
   Route::get('/admin/funds/summary', [VerificationController::class,'getFundsSummary']);
   Route::get('/admin/funds/flows', [VerificationController::class,'getFundsFlows']);
   Route::get('/admin/funds/anomalies', [VerificationController::class,'getFundsAnomalies']);
+  Route::get('/admin/donations/export', [VerificationController::class,'exportDonations']);
   Route::patch('/admin/charities/{charity}/approve', [VerificationController::class,'approve']);
   Route::patch('/admin/charities/{charity}/reject', [VerificationController::class,'reject']);
   Route::patch('/admin/users/{user}/suspend', [VerificationController::class,'suspendUser']);
@@ -290,30 +294,10 @@ Route::middleware(['auth:sanctum','role:admin'])->group(function(){
   Route::get('/admin/activity-logs/statistics', [\App\Http\Controllers\Admin\ActivityLogController::class,'statistics']);
   Route::get('/admin/activity-logs/export', [\App\Http\Controllers\Admin\ActivityLogController::class,'export']);
   
-  // Category Management
-  Route::get('/admin/categories', [CategoryController::class,'adminIndex']);
-  Route::post('/admin/categories', [CategoryController::class,'store']);
-  Route::get('/admin/categories/statistics', [CategoryController::class,'statistics']);
-  Route::put('/admin/categories/{category}', [CategoryController::class,'update']);
-  Route::delete('/admin/categories/{category}', [CategoryController::class,'destroy']);
-  
-  // Comment Moderation
-  Route::get('/admin/comments/pending', [CampaignCommentController::class,'pending']);
-  Route::get('/admin/comments/statistics', [CampaignCommentController::class,'statistics']);
-  Route::patch('/admin/comments/{comment}/moderate', [CampaignCommentController::class,'moderate']);
-  Route::delete('/admin/comments/{comment}', [CampaignCommentController::class,'destroy']);
-  
-  // Document Expiry Management
-  Route::get('/admin/documents/expiring', [DocumentExpiryController::class,'getExpiringDocuments']);
-  Route::get('/admin/documents/expired', [DocumentExpiryController::class,'getExpiredDocuments']);
-  Route::get('/admin/documents/expiry-statistics', [DocumentExpiryController::class,'getExpiryStatistics']);
-  Route::patch('/admin/documents/{document}/expiry', [DocumentExpiryController::class,'updateDocumentExpiry']);
-  
-  // Document Verification (Individual Document Approval/Rejection)
-  Route::patch('/admin/documents/{document}/approve', [DocumentVerificationController::class,'approveDocument']);
-  Route::patch('/admin/documents/{document}/reject', [DocumentVerificationController::class,'rejectDocument']);
-  Route::patch('/admin/documents/{document}/reset', [DocumentVerificationController::class,'resetDocument']);
-  Route::get('/admin/charities/{charity}/document-stats', [DocumentVerificationController::class,'getDocumentStats']);
+  Route::patch('/admin/charities/{charity}/approve', [VerificationController::class,'approve']);
+  Route::patch('/admin/charities/{charity}/reject', [VerificationController::class,'reject']);
+  Route::patch('/admin/users/{user}/suspend', [VerificationController::class,'suspendUser']);
+  Route::patch('/admin/users/{user}/activate', [VerificationController::class,'activateUser']);
 });
 
 // routes/api.php

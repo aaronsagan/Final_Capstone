@@ -130,8 +130,8 @@ export default function FundTransparency() {
                     </div>
                     <Progress value={getProgress(campaign.current_amount, campaign.target_amount)} />
                     <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                      <span>₱{campaign.current_amount.toLocaleString()} raised</span>
-                      <span>₱{campaign.target_amount.toLocaleString()} goal</span>
+                      <span>₱{Number(campaign.current_amount).toLocaleString()} raised</span>
+                      <span>₱{Number(campaign.target_amount).toLocaleString()} goal</span>
                     </div>
                   </div>
 
@@ -144,23 +144,23 @@ export default function FundTransparency() {
                     </div>
                     <Progress value={getUtilization(campaign.spent_amount, campaign.current_amount)} className="bg-green-100" />
                     <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                      <span>₱{campaign.spent_amount.toLocaleString()} spent</span>
-                      <span>₱{campaign.current_amount.toLocaleString()} available</span>
+                      <span>₱{Number(campaign.spent_amount).toLocaleString()} spent</span>
+                      <span>₱{Number(campaign.current_amount).toLocaleString()} available</span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2 pt-2 border-t">
                     <div>
                       <p className="text-xs text-muted-foreground">Target</p>
-                      <p className="font-bold text-sm">₱{campaign.target_amount.toLocaleString()}</p>
+                      <p className="font-bold text-sm">₱{Number(campaign.target_amount).toLocaleString()}</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Raised</p>
-                      <p className="font-bold text-sm text-green-600">₱{campaign.current_amount.toLocaleString()}</p>
+                      <p className="font-bold text-sm text-green-600">₱{Number(campaign.current_amount).toLocaleString()}</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Spent</p>
-                      <p className="font-bold text-sm text-blue-600">₱{campaign.spent_amount.toLocaleString()}</p>
+                      <p className="font-bold text-sm text-blue-600">₱{Number(campaign.spent_amount).toLocaleString()}</p>
                     </div>
                   </div>
                 </CardContent>

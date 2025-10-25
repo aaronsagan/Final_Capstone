@@ -118,7 +118,7 @@ const FundUsagePage = () => {
     }
   };
 
-  const totalAmount = (entries || []).reduce((sum, entry) => sum + entry.amount, 0);
+  const totalAmount = (entries || []).reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
 
   if (loading && (entries || []).length === 0) {
     return (
@@ -158,7 +158,7 @@ const FundUsagePage = () => {
           <div className="flex items-center justify-between p-md bg-muted rounded-md">
             <span className="text-sm font-medium">Total Expenditure:</span>
             <span className="text-2xl font-bold">
-              ${totalAmount.toLocaleString()}
+              ${Number(totalAmount).toLocaleString()}
             </span>
           </div>
 
@@ -205,7 +205,7 @@ const FundUsagePage = () => {
                       <TableCell className="font-medium">
                         {entry.campaignTitle || entry.campaignId}
                       </TableCell>
-                      <TableCell>${entry.amount.toLocaleString()}</TableCell>
+                      <TableCell>${Number(entry.amount).toLocaleString()}</TableCell>
                       <TableCell className="capitalize">{entry.category}</TableCell>
                       <TableCell className="max-w-xs truncate">
                         {entry.description}

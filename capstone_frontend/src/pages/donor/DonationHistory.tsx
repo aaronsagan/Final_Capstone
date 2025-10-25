@@ -51,6 +51,13 @@ export default function DonationHistory() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL;
+  const parseAmount = (amount: any) => {
+    if (typeof amount === 'string') {
+      const numStr = amount.replace(/[^\d.\-]/g, '');
+      return parseFloat(numStr) || 0;
+    }
+    return typeof amount === 'number' ? amount : parseFloat(amount) || 0;
+  };
 
   useEffect(() => {
     fetchDonations();
@@ -107,7 +114,7 @@ export default function DonationHistory() {
           id: d.id,
           charity: charityName,
           campaign: campaignName,
-          amount: d.amount,
+          amount: parseAmount(d.amount),
           date: d.donated_at ?? d.created_at ?? new Date().toISOString(),
           status: d.status,
           type: d.is_recurring ? 'recurring' : 'one-time',
@@ -163,7 +170,7 @@ export default function DonationHistory() {
     );
 
   const completedDonations = donations.filter(d => d.status === 'completed');
-  const totalDonated = completedDonations.reduce((sum, d) => sum + d.amount, 0);
+  const totalDonated = completedDonations.reduce((sum, d) => sum + parseAmount(d.amount), 0);
   const totalCampaigns = new Set(donations.map(d => d.campaign)).size;
   const averageDonation = completedDonations.length > 0 
     ? totalDonated / completedDonations.length 
@@ -239,7 +246,8 @@ export default function DonationHistory() {
 
   // Format amount with peso sign
   const formatCurrency = (amount: number) => {
-    return `₱${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const n = parseAmount(amount);
+    return `₱${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   // Format date to be more readable
@@ -387,7 +395,44 @@ export default function DonationHistory() {
             </p>
           </CardContent>
         </Card>
-        {/* ... */}
+        <Card className="border-l-4 border-l-blue-500">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Average Donation</CardTitle>
+              <TrendingUp className="h-4 w-4 text-blue-600" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-blue-600">
+              {formatCurrency(averageDonation)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Across completed donations</p>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-purple-500">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Campaigns Supported</CardTitle>
+              <Award className="h-4 w-4 text-purple-600" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-purple-600">{totalCampaigns}</div>
+            <p className="text-xs text-muted-foreground mt-1">Unique campaigns you've supported</p>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-amber-500">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Donations</CardTitle>
+              <Heart className="h-4 w-4 text-amber-600" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-amber-600">{donations.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">All recorded donations</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Donations Table */}
@@ -429,6 +474,16 @@ export default function DonationHistory() {
           </div>
         </CardHeader>
         <CardContent>
+          {loading ? (
+            <div className="space-y-2">
+              <div className="h-6 w-40 bg-muted animate-pulse rounded" />
+              <div className="h-24 w-full bg-muted animate-pulse rounded" />
+              <div className="h-24 w-full bg-muted animate-pulse rounded" />
+              <div className="h-24 w-full bg-muted animate-pulse rounded" />
+            </div>
+          ) : filteredDonations.length === 0 ? (
+            <div className="py-10 text-center text-muted-foreground">No donations found.</div>
+          ) : (
           <Table>
             <TableHeader>
               <TableRow>
@@ -445,7 +500,7 @@ export default function DonationHistory() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
-                      {new Date(donation.date).toLocaleDateString()}
+                      {formatDate(donation.date)}
                     </div>
                   </TableCell>
                   <TableCell className="font-medium">
@@ -456,7 +511,7 @@ export default function DonationHistory() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="font-bold text-lg">{formatCurrency(donation.amount)}</div>
+                    <div className="font-bold text-lg">{formatCurrency(parseAmount(donation.amount))}</div>
                   </TableCell>
                   <TableCell>
                     {getStatusBadge(donation.status)}
@@ -489,6 +544,7 @@ export default function DonationHistory() {
               ))}
             </TableBody>
           </Table>
+          )}
         </CardContent>
       </Card>
 
