@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Building2, Settings, AlertTriangle, Activity, ShieldAlert, Wallet, ReceiptText, ShieldCheck, Heart } from "lucide-react";
+import { LayoutDashboard, Users, Building2, Settings, AlertTriangle, Activity, ShieldAlert, Wallet, ShieldCheck, Heart } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
   Sidebar,
@@ -18,7 +18,6 @@ const navItems = [
   { title: "Charities", url: "/admin/charities", icon: Building2 },
   { title: "Compliance", url: "/admin/compliance", icon: ShieldAlert },
   { title: "Fund Tracking", url: "/admin/funds", icon: Wallet },
-  { title: "Transactions", url: "/admin/transactions", icon: ReceiptText },
   { title: "Reports", url: "/admin/reports", icon: AlertTriangle },
   { title: "Action Logs", url: "/admin/action-logs", icon: Activity },
   { title: "Settings", url: "/admin/settings", icon: Settings },

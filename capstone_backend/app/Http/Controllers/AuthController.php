@@ -220,6 +220,9 @@ class AuthController extends Controller
             
             DB::commit();
             
+            // Log charity registration
+            ActivityLogger::logRegister($user, $r);
+            
             return response()->json([
                 'message' => 'Registration successful. Your charity is pending verification.',
                 'user' => $user,

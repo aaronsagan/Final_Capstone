@@ -13,11 +13,21 @@ return new class extends Migration
     {
         Schema::table('donations', function (Blueprint $table) {
             // For manual proof submissions
-            $table->string('donor_name')->nullable()->after('donor_id');
-            $table->string('donor_email')->nullable()->after('donor_name');
-            $table->string('channel_used')->nullable()->after('proof_type');
-            $table->string('reference_number')->nullable()->after('channel_used');
-            $table->text('message')->nullable()->after('reference_number');
+            if (!Schema::hasColumn('donations', 'donor_name')) {
+                $table->string('donor_name')->nullable()->after('donor_id');
+            }
+            if (!Schema::hasColumn('donations', 'donor_email')) {
+                $table->string('donor_email')->nullable()->after('donor_name');
+            }
+            if (!Schema::hasColumn('donations', 'channel_used')) {
+                $table->string('channel_used')->nullable()->after('proof_type');
+            }
+            if (!Schema::hasColumn('donations', 'reference_number')) {
+                $table->string('reference_number')->nullable()->after('channel_used');
+            }
+            if (!Schema::hasColumn('donations', 'message')) {
+                $table->text('message')->nullable()->after('reference_number');
+            }
         });
     }
 

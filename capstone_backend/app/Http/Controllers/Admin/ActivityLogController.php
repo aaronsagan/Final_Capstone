@@ -30,6 +30,11 @@ class ActivityLogController extends Controller
             $query->where('action', $request->action_type);
         }
 
+        // Filter by target type
+        if ($request->has('target_type') && $request->target_type !== 'all') {
+            $query->whereJsonContains('details->target_type', $request->target_type);
+        }
+
         // Filter by date range
         if ($request->has('start_date')) {
             $query->whereDate('created_at', '>=', $request->start_date);
@@ -40,12 +45,13 @@ class ActivityLogController extends Controller
 
         // Search in details
         if ($request->has('search') && $request->search) {
-            $query->where(function($q) use ($request) {
-                $q->where('action', 'like', '%' . $request->search . '%')
-                  ->orWhere('details', 'like', '%' . $request->search . '%')
-                  ->orWhereHas('user', function($userQuery) use ($request) {
-                      $userQuery->where('name', 'like', '%' . $request->search . '%')
-                                ->orWhere('email', 'like', '%' . $request->search . '%');
+            $searchTerm = $request->search;
+            $query->where(function($q) use ($searchTerm) {
+                $q->where('action', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('details', 'like', '%' . $searchTerm . '%')
+                  ->orWhereHas('user', function($userQuery) use ($searchTerm) {
+                      $userQuery->where('name', 'like', '%' . $searchTerm . '%')
+                                ->orWhere('email', 'like', '%' . $searchTerm . '%');
                   });
             });
         }
@@ -57,13 +63,16 @@ class ActivityLogController extends Controller
 
         // Transform the data to match frontend expectations
         $transformedLogs = $logs->getCollection()->map(function($log) {
+            // Handle case where user might be deleted
+            $user = $log->user;
+            
             return [
                 'id' => $log->id,
                 'user' => [
-                    'id' => $log->user->id ?? null,
-                    'name' => $log->user->name ?? 'Unknown User',
-                    'email' => $log->user->email ?? '',
-                    'role' => $log->user->role ?? $log->user_role ?? 'unknown',
+                    'id' => $user ? $user->id : $log->user_id,
+                    'name' => $user ? $user->name : 'Deleted User',
+                    'email' => $user ? $user->email : 'N/A',
+                    'role' => $user ? $user->role : ($log->user_role ?? 'unknown'),
                 ],
                 'action_type' => $log->action,
                 'target_type' => $log->details['target_type'] ?? null,
@@ -116,12 +125,17 @@ class ActivityLogController extends Controller
 
         // Apply same filters as index
         if ($request->has('user_role') && $request->user_role !== 'all') {
-            $query->whereHas('user', function($q) use ($request) {
-                $q->where('role', $request->user_role);
+            $query->where(function($q) use ($request) {
+                $q->whereHas('user', function($userQuery) use ($request) {
+                    $userQuery->where('role', $request->user_role);
+                })->orWhere('user_role', $request->user_role);
             });
         }
         if ($request->has('action_type') && $request->action_type !== 'all') {
             $query->where('action', $request->action_type);
+        }
+        if ($request->has('target_type') && $request->target_type !== 'all') {
+            $query->whereJsonContains('details->target_type', $request->target_type);
         }
         if ($request->has('start_date')) {
             $query->whereDate('created_at', '>=', $request->start_date);
@@ -171,7 +185,7 @@ class ActivityLogController extends Controller
     private function generateDescription($log)
     {
         $action = $log->action;
-        $userName = $log->user->name ?? 'User';
+        $userName = $log->user ? $log->user->name : 'User';
         
         $descriptions = [
             'login' => "$userName logged in",

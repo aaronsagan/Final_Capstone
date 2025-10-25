@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, Eye, CheckCircle, XCircle, Clock, Search, Filter, RefreshCw } from "lucide-react";
+import { AlertTriangle, Eye, CheckCircle, XCircle, Clock, Search, Filter, RefreshCw, Ban, ShieldAlert, UserX, FileText, History } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
@@ -19,6 +19,16 @@ interface Report {
     email: string;
   };
   reporter_role: string;
+  reported_user?: {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+    account_status: string;
+    created_at: string;
+    previous_reports_count?: number;
+    previous_suspensions_count?: number;
+  };
   reported_entity_type: string;
   reported_entity_id: number;
   reason: string;
@@ -29,6 +39,8 @@ interface Report {
   reviewed_by?: number;
   reviewed_at?: string;
   action_taken?: string;
+  violation_level?: string;
+  suspension_duration?: number;
   created_at: string;
 }
 
@@ -58,6 +70,9 @@ export default function AdminReports() {
   const [reviewStatus, setReviewStatus] = useState("");
   const [actionTaken, setActionTaken] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
+  const [violationLevel, setViolationLevel] = useState("");
+  const [suspensionDuration, setSuspensionDuration] = useState("");
+  const [isSuspensionOpen, setIsSuspensionOpen] = useState(false);
 
   useEffect(() => {
     fetchReports();
@@ -121,7 +136,90 @@ export default function AdminReports() {
     setReviewStatus("");
     setActionTaken("");
     setAdminNotes("");
+    setViolationLevel("");
+    setSuspensionDuration("");
     setIsReviewOpen(true);
+  };
+
+  const handleSuspendUser = (report: Report) => {
+    setSelectedReport(report);
+    setViolationLevel("");
+    setSuspensionDuration("");
+    setAdminNotes("");
+    setIsSuspensionOpen(true);
+  };
+
+  const submitSuspension = async () => {
+    if (!selectedReport || !violationLevel || !suspensionDuration) {
+      toast.error("Please select violation level and suspension duration");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${apiBase}/admin/reports/${selectedReport.id}/suspend`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({
+          reported_user_id: selectedReport.reported_user?.id,
+          violation_level: violationLevel,
+          suspension_duration: suspensionDuration,
+          reason: selectedReport.reason,
+          admin_notes: adminNotes,
+        }),
+      });
+      if (!res.ok) throw new Error('Suspension failed');
+
+      toast.success("User suspended successfully");
+      setIsSuspensionOpen(false);
+      fetchReports();
+      fetchStatistics();
+    } catch (error) {
+      toast.error("Failed to suspend user");
+    }
+  };
+
+  const dismissReport = async (reportId: number) => {
+    if (!confirm("Are you sure you want to dismiss this report?")) return;
+
+    try {
+      const res = await fetch(`${apiBase}/admin/reports/${reportId}/dismiss`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({
+          admin_notes: "Report dismissed - insufficient evidence or no violation found"
+        }),
+      });
+      if (!res.ok) throw new Error('Dismiss failed');
+      toast.success("Report dismissed successfully");
+      fetchReports();
+      fetchStatistics();
+    } catch (error) {
+      toast.error("Failed to dismiss report");
+    }
+  };
+
+  const getViolationLevelBadge = (level: string) => {
+    const colors = {
+      minor: "bg-yellow-100 text-yellow-800 border-yellow-300",
+      moderate: "bg-orange-100 text-orange-800 border-orange-300",
+      severe: "bg-red-100 text-red-800 border-red-300",
+    };
+    const icons = {
+      minor: "🟡",
+      moderate: "🟠",
+      severe: "🔴",
+    };
+    return (
+      <Badge className={colors[level as keyof typeof colors]}>
+        {icons[level as keyof typeof icons]} {level.toUpperCase()}
+      </Badge>
+    );
   };
 
   const submitReview = async () => {
@@ -421,24 +519,26 @@ export default function AdminReports() {
                       View
                     </Button>
                     {report.status === "pending" && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleReviewReport(report)}
-                        className="transition-all duration-200 hover:scale-105 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
-                      >
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        Review
-                      </Button>
+                      <>
+                        <Button
+                          size="sm"
+                          onClick={() => handleSuspendUser(report)}
+                          className="transition-all duration-200 hover:scale-105 bg-red-600 hover:bg-red-700"
+                        >
+                          <Ban className="h-4 w-4 mr-1" />
+                          Suspend
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => dismissReport(report.id)}
+                          className="transition-all duration-200 hover:scale-105"
+                        >
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Dismiss
+                        </Button>
+                      </>
                     )}
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => deleteReport(report.id)}
-                      className="transition-all duration-200 hover:scale-105"
-                    >
-                      <XCircle className="h-4 w-4 mr-1" />
-                      Delete
-                    </Button>
                   </div>
                 </div>
                 <p className="text-sm bg-gray-50 p-2 rounded">
@@ -461,49 +561,150 @@ export default function AdminReports() {
 
       {/* Report Details Dialog */}
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Report Details</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Report Details #{selectedReport?.id}
+            </DialogTitle>
             <DialogDescription>
-              Full details of report #{selectedReport?.id}
+              Complete information about this report
             </DialogDescription>
           </DialogHeader>
           {selectedReport && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-6">
+              {/* Report Status */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
                 <div>
-                  <label className="text-sm font-medium">Reporter</label>
-                  <p className="text-sm">{selectedReport.reporter.name}</p>
-                  <p className="text-xs text-muted-foreground">{selectedReport.reporter.email}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Status</label>
+                  <label className="text-sm font-medium">Current Status</label>
                   <div className="mt-1">{getStatusBadge(selectedReport.status)}</div>
                 </div>
+                {selectedReport.violation_level && (
+                  <div>
+                    <label className="text-sm font-medium">Violation Level</label>
+                    <div className="mt-1">{getViolationLevelBadge(selectedReport.violation_level)}</div>
+                  </div>
+                )}
               </div>
+
+              {/* Reported User Info */}
+              {selectedReport.reported_user && (
+                <Card className="border-red-200 dark:border-red-900">
+                  <CardHeader className="pb-3 bg-red-50 dark:bg-red-950/20">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <UserX className="h-4 w-4" />
+                      Reported User Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Name</label>
+                        <p className="text-sm font-medium">{selectedReport.reported_user.name}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Email</label>
+                        <p className="text-sm">{selectedReport.reported_user.email}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Role</label>
+                        <Badge variant="outline">{selectedReport.reported_user.role}</Badge>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Account Status</label>
+                        <Badge variant={selectedReport.reported_user.account_status === 'active' ? 'default' : 'destructive'}>
+                          {selectedReport.reported_user.account_status}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Previous Reports</label>
+                        <p className="text-sm font-semibold text-orange-600">{selectedReport.reported_user.previous_reports_count || 0}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Previous Suspensions</label>
+                        <p className="text-sm font-semibold text-red-600">{selectedReport.reported_user.previous_suspensions_count || 0}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Reporter Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Reported By</label>
+                  <p className="text-sm">{selectedReport.reporter.name}</p>
+                  <p className="text-xs text-muted-foreground">{selectedReport.reporter.email}</p>
+                  <Badge variant="secondary" className="mt-1">{selectedReport.reporter_role}</Badge>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Report Date</label>
+                  <p className="text-sm">{new Date(selectedReport.created_at).toLocaleString()}</p>
+                </div>
+              </div>
+
+              {/* Report Details */}
               <div>
-                <label className="text-sm font-medium">Description</label>
-                <p className="text-sm mt-1 p-2 bg-gray-50 rounded">{selectedReport.description}</p>
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  Reason: {formatReason(selectedReport.reason)}
+                </label>
+                <p className="text-sm mt-2 p-3 bg-red-50 dark:bg-red-950/20 rounded border border-red-200 dark:border-red-900">
+                  {selectedReport.description}
+                </p>
               </div>
+
               {selectedReport.evidence_path && (
                 <div>
                   <label className="text-sm font-medium">Evidence</label>
-                  <p className="text-sm mt-1">
+                  <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded border border-blue-200 dark:border-blue-900">
                     <a 
                       href={`/storage/${selectedReport.evidence_path}`} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
+                      className="text-blue-600 hover:underline flex items-center gap-2"
                     >
+                      <FileText className="h-4 w-4" />
                       View Evidence File
                     </a>
-                  </p>
+                  </div>
                 </div>
               )}
+
               {selectedReport.admin_notes && (
                 <div>
                   <label className="text-sm font-medium">Admin Notes</label>
-                  <p className="text-sm mt-1 p-2 bg-blue-50 rounded">{selectedReport.admin_notes}</p>
+                  <p className="text-sm mt-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded border border-blue-200 dark:border-blue-900">
+                    {selectedReport.admin_notes}
+                  </p>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              {selectedReport.status === "pending" && (
+                <div className="flex gap-2 justify-end pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsDetailsOpen(false);
+                      dismissReport(selectedReport.id);
+                    }}
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Dismiss Report
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      setIsDetailsOpen(false);
+                      handleSuspendUser(selectedReport);
+                    }}
+                  >
+                    <Ban className="h-4 w-4 mr-2" />
+                    Suspend User
+                  </Button>
                 </div>
               )}
             </div>
@@ -567,6 +768,179 @@ export default function AdminReports() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Suspension Dialog */}
+      <Dialog open={isSuspensionOpen} onOpenChange={setIsSuspensionOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Ban className="h-5 w-5" />
+              Suspend User Account
+            </DialogTitle>
+            <DialogDescription>
+              Review violation and assign suspension duration for report #{selectedReport?.id}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedReport && (
+            <div className="space-y-6">
+              {/* Reported User Summary */}
+              {selectedReport.reported_user && (
+                <div className="p-4 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-900">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold">{selectedReport.reported_user.name}</p>
+                      <p className="text-sm text-muted-foreground">{selectedReport.reported_user.email}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground">Previous Issues</p>
+                      <p className="text-sm">
+                        <span className="font-semibold text-orange-600">{selectedReport.reported_user.previous_reports_count || 0}</span> reports, 
+                        <span className="font-semibold text-red-600 ml-1">{selectedReport.reported_user.previous_suspensions_count || 0}</span> suspensions
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Violation Reason */}
+              <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded">
+                <p className="text-sm font-medium mb-1">Report Reason:</p>
+                <p className="text-sm text-red-600 font-semibold">{formatReason(selectedReport.reason)}</p>
+              </div>
+
+              {/* Violation Level Selection */}
+              <div>
+                <label className="text-sm font-medium flex items-center gap-2 mb-2">
+                  <ShieldAlert className="h-4 w-4" />
+                  Violation Level
+                </label>
+                <Select value={violationLevel} onValueChange={setViolationLevel}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select violation severity" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="minor">
+                      <div className="flex items-center gap-2">
+                        <span>🟡</span>
+                        <div>
+                          <p className="font-medium">Minor Violation</p>
+                          <p className="text-xs text-muted-foreground">Spam, inappropriate language, repeated unsolicited messages</p>
+                        </div>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="moderate">
+                      <div className="flex items-center gap-2">
+                        <span>🟠</span>
+                        <div>
+                          <p className="font-medium">Moderate Violation</p>
+                          <p className="text-xs text-muted-foreground">Fake proof, misleading content, minor fund misuse</p>
+                        </div>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="severe">
+                      <div className="flex items-center gap-2">
+                        <span>🔴</span>
+                        <div>
+                          <p className="font-medium">Severe Violation</p>
+                          <p className="text-xs text-muted-foreground">Fraud, scam, fake charity, repeated offenses, harassment</p>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Suspension Duration */}
+              <div>
+                <label className="text-sm font-medium flex items-center gap-2 mb-2">
+                  <Clock className="h-4 w-4" />
+                  Suspension Duration
+                </label>
+                <Select value={suspensionDuration} onValueChange={setSuspensionDuration}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select suspension period" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3">3 Days (Minor - Warning)</SelectItem>
+                    <SelectItem value="5">5 Days (Moderate)</SelectItem>
+                    <SelectItem value="7">7 Days (Moderate)</SelectItem>
+                    <SelectItem value="10">10 Days (Severe)</SelectItem>
+                    <SelectItem value="15">15 Days (Severe)</SelectItem>
+                    <SelectItem value="30">30 Days (Very Severe)</SelectItem>
+                    <SelectItem value="permanent">Permanent Ban</SelectItem>
+                  </SelectContent>
+                </Select>
+                {suspensionDuration && suspensionDuration !== "permanent" && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Account will be automatically reactivated on: {new Date(Date.now() + parseInt(suspensionDuration) * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                  </p>
+                )}
+                {suspensionDuration === "permanent" && (
+                  <p className="text-xs text-red-600 font-semibold mt-2">
+                    ⚠️ This user will be permanently banned and cannot access the platform
+                  </p>
+                )}
+              </div>
+
+              {/* Violation Guidelines */}
+              <Card className="border-blue-200 dark:border-blue-900">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">Suspension Guidelines</CardTitle>
+                </CardHeader>
+                <CardContent className="text-xs space-y-2">
+                  <div className="flex gap-2">
+                    <span>🟡</span>
+                    <div>
+                      <p className="font-medium">Minor (3 days):</p>
+                      <p className="text-muted-foreground">First offense, spam, inappropriate language</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <span>🟠</span>
+                    <div>
+                      <p className="font-medium">Moderate (5-7 days):</p>
+                      <p className="text-muted-foreground">Fake proof, misleading content, minor fund misuse</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <span>🔴</span>
+                    <div>
+                      <p className="font-medium">Severe (10-15 days or Permanent):</p>
+                      <p className="text-muted-foreground">Fraud, scam, fake charity, repeated offenses, harassment</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Admin Notes */}
+              <div>
+                <label className="text-sm font-medium mb-2 block">Suspension Reason (will be sent to user)</label>
+                <Textarea
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                  placeholder="Explain the reason for suspension and any additional notes..."
+                  rows={3}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 justify-end pt-4 border-t">
+                <Button variant="outline" onClick={() => setIsSuspensionOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={submitSuspension}
+                  disabled={!violationLevel || !suspensionDuration}
+                >
+                  <Ban className="h-4 w-4 mr-2" />
+                  Confirm Suspension
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
