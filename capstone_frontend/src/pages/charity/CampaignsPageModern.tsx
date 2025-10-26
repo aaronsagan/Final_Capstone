@@ -93,7 +93,7 @@ const CampaignsPageModern = () => {
           title: c.title,
           description: c.description || "",
           goal: c.target_amount || 0,
-          amountRaised: c.current_amount || 0,
+          amountRaised: c.raised || 0,
           donorsCount: c.donors_count || 0,
           views: c.views || 0,
           status: mapBackendStatus(c.status),

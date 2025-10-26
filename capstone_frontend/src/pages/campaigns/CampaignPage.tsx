@@ -239,7 +239,7 @@ export default function CampaignPage() {
         title: campaignResponse.title,
         description: campaignResponse.description || "",
         goal: campaignResponse.target_amount || 0,
-        amountRaised: campaignResponse.current_amount || 0,
+        amountRaised: campaignResponse.raised || 0,
         donorsCount: 0, // Will be calculated from supporters
         status: mapBackendStatus(campaignResponse.status),
         bannerImage: campaignResponse.cover_image_path,

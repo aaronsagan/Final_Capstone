@@ -22,7 +22,7 @@ export interface Campaign {
   outcome?: string;
   expected_outcome?: string;
   target_amount?: number;
-  current_amount?: number;
+  raised?: number;
   deadline_at?: string;
   cover_image_path?: string;
   status: 'draft' | 'published' | 'closed' | 'archived';

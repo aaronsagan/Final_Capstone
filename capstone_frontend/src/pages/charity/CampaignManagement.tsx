@@ -23,7 +23,7 @@ interface Campaign {
   title: string;
   description: string;
   target_amount: number;
-  current_amount: number;
+  raised: number;
   start_date: string;
   end_date: string;
   status: 'draft' | 'published' | 'closed' | 'archived';
@@ -76,7 +76,7 @@ export default function CampaignManagement() {
         title: campaign.title,
         description: campaign.description || "",
         target_amount: campaign.target_amount || 0,
-        current_amount: campaign.current_amount || 0,
+        raised: campaign.raised || 0,
         start_date: campaign.start_date || "",
         end_date: campaign.end_date || "",
         status: campaign.status,
@@ -224,7 +224,7 @@ export default function CampaignManagement() {
       title: campaign.title,
       description: campaign.description,
       goal: campaign.target_amount,
-      amountRaised: campaign.current_amount,
+      amountRaised: campaign.raised,
       donorsCount: 0, // TODO: Get from API
       views: 0, // TODO: Get from API
       status: cardStatus,
@@ -363,7 +363,7 @@ export default function CampaignManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ₱{campaigns.reduce((sum, c) => sum + c.current_amount, 0).toLocaleString()}
+              ₱{campaigns.reduce((sum, c) => sum + c.raised, 0).toLocaleString()}
             </div>
           </CardContent>
         </Card>
@@ -451,9 +451,9 @@ export default function CampaignManagement() {
                   <TableCell>₱{campaign.target_amount.toLocaleString()}</TableCell>
                   <TableCell>
                     <div className="space-y-1">
-                      <Progress value={getProgress(campaign.current_amount, campaign.target_amount)} />
+                      <Progress value={getProgress(campaign.raised, campaign.target_amount)} />
                       <p className="text-xs text-muted-foreground">
-                        ₱{campaign.current_amount.toLocaleString()} / ₱{campaign.target_amount.toLocaleString()}
+                        ₱{campaign.raised.toLocaleString()} / ₱{campaign.target_amount.toLocaleString()}
                       </p>
                     </div>
                   </TableCell>
@@ -667,14 +667,14 @@ export default function CampaignManagement() {
                 </div>
                 <div>
                   <Label>Current Amount</Label>
-                  <p className="text-lg font-bold text-green-600">₱{selectedCampaign.current_amount.toLocaleString()}</p>
+                  <p className="text-lg font-bold text-green-600">₱{selectedCampaign.raised.toLocaleString()}</p>
                 </div>
               </div>
               <div>
                 <Label>Progress</Label>
-                <Progress value={getProgress(selectedCampaign.current_amount, selectedCampaign.target_amount)} className="mt-2" />
+                <Progress value={getProgress(selectedCampaign.raised, selectedCampaign.target_amount)} className="mt-2" />
                 <p className="text-sm text-muted-foreground mt-1">
-                  {getProgress(selectedCampaign.current_amount, selectedCampaign.target_amount).toFixed(1)}% achieved
+                  {getProgress(selectedCampaign.raised, selectedCampaign.target_amount).toFixed(1)}% achieved
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-4">

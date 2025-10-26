@@ -13,14 +13,14 @@ class CampaignController extends Controller
     public function index(Request $r, Charity $charity){
         // If authenticated user owns the charity, show all campaigns
         if ($r->user() && $charity->owner_id === $r->user()->id) {
-            return $charity->campaigns()->latest()->paginate(12);
+            return $charity->campaigns()->with(['charity', 'donationChannels', 'donations'])->latest()->paginate(12);
         }
         // Otherwise only show published campaigns
-        return $charity->campaigns()->where('status','published')->latest()->paginate(12);
+        return $charity->campaigns()->where('status','published')->with(['charity', 'donationChannels', 'donations'])->latest()->paginate(12);
     }
 
     public function show(Campaign $campaign){ 
-        return $campaign->load(['charity', 'donationChannels']);
+        return $campaign->load(['charity', 'donationChannels', 'donations']);
     }
 
     public function store(Request $r, Charity $charity){
@@ -155,18 +155,25 @@ class CampaignController extends Controller
         $supporters = $campaign->donations()
             ->with('donor:id,name,email')
             ->where('status', 'completed')
-            ->selectRaw('donor_id, is_anonymous, SUM(amount) as total_amount, MAX(donated_at) as donated_at, MAX(created_at) as created_at')
-            ->groupBy('donor_id', 'is_anonymous')
+            ->selectRaw('
+                CASE WHEN donor_id IS NULL THEN CONCAT("anonymous_", id) ELSE donor_id END as group_key,
+                donor_id,
+                is_anonymous,
+                SUM(amount) as total_amount,
+                MAX(donated_at) as donated_at,
+                MAX(created_at) as created_at
+            ')
+            ->groupBy('group_key', 'donor_id', 'is_anonymous')
             ->orderByRaw('SUM(amount) DESC')
             ->get()
             ->map(function ($donation) {
                 return [
                     'id' => $donation->donor_id,
                     'donor_id' => $donation->donor_id,
-                    'name' => $donation->is_anonymous ? 'Anonymous' : $donation->donor?->name,
-                    'donor' => $donation->is_anonymous ? null : [
-                        'id' => $donation->donor?->id,
-                        'name' => $donation->donor?->name,
+                    'name' => $donation->is_anonymous ? 'Anonymous' : ($donation->donor?->name ?? 'Anonymous'),
+                    'donor' => $donation->is_anonymous || !$donation->donor ? null : [
+                        'id' => $donation->donor->id,
+                        'name' => $donation->donor->name,
                     ],
                     'is_anonymous' => $donation->is_anonymous,
                     'amount' => $donation->total_amount,
@@ -186,6 +193,7 @@ class CampaignController extends Controller
     {
         $donations = $campaign->donations()
             ->with('donor:id,name,email')
+            ->where('status', 'completed')
             ->orderBy('created_at', 'desc')
             ->paginate($request->get('per_page', 10));
 
@@ -208,13 +216,13 @@ class CampaignController extends Controller
     public function getStats(Campaign $campaign)
     {
         $stats = [
-            'total_raised' => $campaign->current_amount ?? 0,
+            'total_raised' => $campaign->raised ?? 0,
             'target_amount' => $campaign->target_amount ?? 0,
             'donors_count' => $campaign->donations()->where('status', 'completed')->distinct('donor_id')->count(),
             'donations_count' => $campaign->donations()->where('status', 'completed')->count(),
             'pending_donations' => $campaign->donations()->where('status', 'pending')->count(),
             'progress_percentage' => $campaign->target_amount > 0 
-                ? round(($campaign->current_amount / $campaign->target_amount) * 100, 2) 
+                ? round(($campaign->raised / $campaign->target_amount) * 100, 2) 
                 : 0,
         ];
 

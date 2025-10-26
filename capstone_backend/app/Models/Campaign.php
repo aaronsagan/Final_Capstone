@@ -43,7 +43,7 @@ class Campaign extends Model
     }
 
     // Accessors
-    public function getCurrentAmountAttribute()
+    public function getRaisedAttribute()
     {
         return $this->donations()
             ->where('status', 'completed')

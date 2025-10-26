@@ -76,7 +76,7 @@ export default function ReportsAnalytics() {
   const stats = {
     totalDonations: donations.filter(d => d.status === 'completed').reduce((sum, d) => sum + d.amount, 0),
     totalCount: donations.filter(d => d.status === 'completed').length,
-    avgDonation: donations.length > 0 
+    avgDonation: donations.filter(d => d.status === 'completed').length > 0 
       ? donations.filter(d => d.status === 'completed').reduce((sum, d) => sum + d.amount, 0) / donations.filter(d => d.status === 'completed').length
       : 0,
     thisMonth: donations.filter(d => {
@@ -272,7 +272,7 @@ export default function ReportsAnalytics() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    ₱{stats.avgDonation.toLocaleString(undefined, {
+                    ₱{isNaN(stats.avgDonation) || !isFinite(stats.avgDonation) ? '0.00' : stats.avgDonation.toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
